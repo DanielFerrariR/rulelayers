@@ -53,6 +53,20 @@ Body
     expect(fm.omit).toBe(false);
     expect(fm.stripped).toBe(raw);
   });
+
+  it("preserves original frontmatter formatting when omit/reason are absent", () => {
+    const raw = `---
+targets: ["*"]
+globs: ["**/*.ts", "**/*.tsx"]
+description: "hello"
+---
+
+Body
+`;
+    const fm = parseFrontmatter(raw);
+    expect(fm.omit).toBe(false);
+    expect(fm.stripped).toBe(raw);
+  });
 });
 
 describe("deepMerge / mergeIgnoreLines", () => {

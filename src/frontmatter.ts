@@ -7,7 +7,7 @@ export interface FrontmatterResult {
   content: string;
   omit: boolean;
   reason?: string;
-  /** Full file text with omit/reason stripped from frontmatter (when written). */
+  /** Full file text; omit/reason stripped from frontmatter only when those keys were present. */
   stripped: string;
 }
 
@@ -18,6 +18,8 @@ export function parseFrontmatter(raw: string): FrontmatterResult {
   const reason =
     typeof data.reason === "string" && data.reason.length > 0 ? data.reason : undefined;
 
+  const needsStrip = Object.keys(data).some((key) => OMIT_KEYS.has(key));
+
   const cleanData: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
     if (!OMIT_KEYS.has(key)) {
@@ -26,7 +28,8 @@ export function parseFrontmatter(raw: string): FrontmatterResult {
   }
 
   let stripped: string;
-  if (Object.keys(data).length === 0 && !raw.trimStart().startsWith("---")) {
+  if (!needsStrip) {
+    // Nothing to remove — keep original YAML formatting (flow lists, quotes, etc.)
     stripped = raw;
   } else if (Object.keys(cleanData).length === 0) {
     // No remaining frontmatter fields — emit body only (trim leading blank lines)

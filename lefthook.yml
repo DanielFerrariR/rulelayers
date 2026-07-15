@@ -1,0 +1,26 @@
+# https://lefthook.dev/
+pre-commit:
+  parallel: true
+  commands:
+    oxlint:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
+      run: |
+        if [ -n "{staged_files}" ]; then
+          npx oxlint --fix {staged_files}
+        fi
+      stage_fixed: true
+    oxfmt:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,md}"
+      run: |
+        if [ -n "{staged_files}" ]; then
+          npx oxfmt {staged_files}
+        fi
+      stage_fixed: true
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: npm run typecheck
+    knip:
+      run: npm run knip

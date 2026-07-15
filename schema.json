@@ -7,9 +7,35 @@
     "$schema": { "type": "string" },
     "layers": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
       "minItems": 1,
-      "description": "Layer names from lowest to highest precedence. Each maps to .rulesync.{name}/"
+      "description": "Layers from lowest to highest precedence. Strings map to .rulesync.{name}/; objects may pull from an npm package.",
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Layer name (used for logging). Defaults from the package basename when omitted."
+              },
+              "package": {
+                "type": "string",
+                "minLength": 1,
+                "description": "npm package to read as this layer (e.g. @acme/ai-rules)"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Subpath inside the package (overrides package.json rulelayers root)"
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [{ "required": ["name"] }, { "required": ["package"] }]
+          }
+        ]
+      }
     },
     "rulesync": {
       "type": "object",

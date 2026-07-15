@@ -1,4 +1,5 @@
 import { loadConfig } from "../config.js";
+import { formatLayerLabel } from "../layers.js";
 import { mergeLayers } from "../merge.js";
 import { runRulesync } from "../rulesync.js";
 
@@ -14,7 +15,7 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
   const config = loadConfig(cwd);
 
   if (verbose) {
-    console.log(`layers (low→high): ${config.layers.join(" → ")}`);
+    console.log(`layers (low→high): ${config.layers.map(formatLayerLabel).join(" → ")}`);
   }
 
   const result = mergeLayers({

@@ -10,8 +10,9 @@ import {
 } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import type { RulelayersConfig } from "./config.js";
-import { layerDirName, MERGED_DIR } from "./config.js";
+import { MERGED_DIR } from "./config.js";
 import { isMarkdownPath, parseFrontmatter } from "./frontmatter.js";
+import { formatLayerLabel, resolveLayerRoot } from "./layers.js";
 
 const PATH_FEATURES = ["rules", "commands", "subagents"] as const;
 const JSON_FILES = ["mcp.json", ".mcp.json", "hooks.json", "permissions.json"] as const;
@@ -118,17 +119,32 @@ export function mergeLayers(options: MergeOptions): MergeResult {
   const written: string[] = [];
   const skippedLayers: string[] = [];
 
-  const layerRoots = config.layers.map((name) => ({
-    name,
-    root: join(cwd, layerDirName(name)),
-  }));
+  const layerRoots = config.layers.map((layer) => {
+    if (layer.package) {
+      return {
+        name: layer.name,
+        root: resolveLayerRoot(cwd, layer),
+        label: formatLayerLabel(layer),
+        fromPackage: true as const,
+      };
+    }
+    return {
+      name: layer.name,
+      root: resolveLayerRoot(cwd, layer),
+      label: formatLayerLabel(layer),
+      fromPackage: false as const,
+    };
+  });
 
   for (const layer of layerRoots) {
     if (!existsSync(layer.root)) {
+      // Local layers may be absent (e.g. user). Package layers are validated in resolveLayerRoot.
       skippedLayers.push(layer.name);
       if (verbose) {
-        log(`skip missing layer directory: ${layerDirName(layer.name)}`);
+        log(`skip missing layer directory: .rulesync.${layer.name}`);
       }
+    } else if (verbose && layer.fromPackage) {
+      log(`layer ${layer.label} → ${layer.root}`);
     }
   }
 

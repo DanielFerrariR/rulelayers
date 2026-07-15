@@ -93,7 +93,7 @@ describe("mergeLayers", () => {
 
     const result = mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
     });
 
     expect(result.written).toContain("rules/shared.md");
@@ -115,7 +115,7 @@ describe("mergeLayers", () => {
     const logs: string[] = [];
     const result = mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
       verbose: true,
       log: (m) => logs.push(m),
     });
@@ -156,7 +156,7 @@ describe("mergeLayers", () => {
 
     mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
     });
 
     const mcp = JSON.parse(readFileSync(join(cwd, ".rulesync/mcp.json"), "utf8")) as {
@@ -194,7 +194,7 @@ describe("mergeLayers", () => {
       cwd,
       config: {
         ...DEFAULT_CONFIG,
-        layers: ["company", "project", "user"],
+        layers: [{ name: "company" }, { name: "project" }, { name: "user" }],
       },
     });
 
@@ -216,7 +216,7 @@ describe("mergeLayers", () => {
 
     const result = mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
     });
 
     expect(result.omitted.some((o) => o.path === "skills/banned")).toBe(true);
@@ -232,7 +232,7 @@ describe("mergeLayers", () => {
       cwd,
       config: {
         ...DEFAULT_CONFIG,
-        layers: ["company", "project", "user"],
+        layers: [{ name: "company" }, { name: "project" }, { name: "user" }],
       },
       verbose: true,
       log: () => {},
@@ -248,7 +248,7 @@ describe("mergeLayers", () => {
 
     const result = mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }] },
       dryRun: true,
     });
 

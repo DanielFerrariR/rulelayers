@@ -69,7 +69,7 @@ describe("commands / subagents / hooks / permissions", () => {
 
     const result = mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
     });
 
     expect(result.omitted.some((o) => o.path === "commands/review.md")).toBe(true);
@@ -107,7 +107,7 @@ describe("commands / subagents / hooks / permissions", () => {
 
     mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
     });
 
     const hooks = JSON.parse(readFileSync(join(cwd, ".rulesync/hooks.json"), "utf8")) as {
@@ -142,7 +142,7 @@ describe("commands / subagents / hooks / permissions", () => {
 
     mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company", "project"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }, { name: "project" }] },
     });
 
     expect(existsSync(join(cwd, ".rulesync/mcp.json"))).toBe(true);
@@ -161,7 +161,7 @@ describe("commands / subagents / hooks / permissions", () => {
 
     const result = mergeLayers({
       cwd,
-      config: { ...DEFAULT_CONFIG, layers: ["company"] },
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "company" }] },
     });
 
     expect(result.written).toContain("rules/real.md");
@@ -206,7 +206,7 @@ describe("initCommand / generateCommand", () => {
     expect(existsSync(join(cwd, ".rulesync.org"))).toBe(true);
     expect(existsSync(join(cwd, ".rulesync.repo"))).toBe(true);
     const cfg = loadConfig(cwd);
-    expect(cfg.layers).toEqual(["org", "repo"]);
+    expect(cfg.layers).toEqual([{ name: "org" }, { name: "repo" }]);
   });
 
   it("generateCommand merge-only writes .rulesync", async () => {

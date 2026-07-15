@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { formatConfig, loadConfig, DEFAULT_CONFIG } from "../src/config.js";
+import { formatConfig, loadConfig, normalizeLayer, DEFAULT_CONFIG } from "../src/config.js";
 
 const dirs: string[] = [];
 
@@ -30,9 +30,44 @@ describe("loadConfig", () => {
     );
 
     const cfg = loadConfig(cwd);
-    expect(cfg.layers).toEqual(["org", "repo"]);
+    expect(cfg.layers).toEqual([{ name: "org" }, { name: "repo" }]);
     expect(cfg.rulesync.command).toBe("rulesync");
     expect(cfg.rulesync.args).toEqual(["generate", "--targets", "cursor"]);
+  });
+
+  it("loads package layers", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [
+    { "package": "@acme/company-rules" },
+    { "name": "platform", "package": "@acme/mono", "path": "layers/platform" },
+    "project",
+    "user"
+  ]
+}
+`,
+    );
+
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers).toEqual([
+      { name: "company-rules", package: "@acme/company-rules" },
+      { name: "platform", package: "@acme/mono", path: "layers/platform" },
+      { name: "project" },
+      { name: "user" },
+    ]);
+  });
+
+  it("rejects path without package", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{ "layers": [{ "name": "x", "path": "oops" }] }\n`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/path" requires "package/);
   });
 
   it("throws when config missing", () => {
@@ -41,9 +76,16 @@ describe("loadConfig", () => {
     expect(() => loadConfig(cwd)).toThrow(/Missing rulelayers.jsonc/);
   });
 
-  it("formatConfig round-trips defaults", () => {
+  it("formatConfig round-trips defaults and package layers", () => {
     const text = formatConfig(DEFAULT_CONFIG);
     expect(text).toContain('"layers"');
     expect(text).toContain("company");
+
+    const withPkg = formatConfig({
+      ...DEFAULT_CONFIG,
+      layers: [normalizeLayer({ package: "@acme/rules" }), { name: "project" }, { name: "user" }],
+    });
+    expect(withPkg).toContain('"package": "@acme/rules"');
+    expect(withPkg).toContain('"name": "rules"');
   });
 });

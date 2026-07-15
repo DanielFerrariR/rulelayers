@@ -61,26 +61,26 @@ function writeIfMissing(
 
 export function scaffold(options: InitOptions): InitResult {
   const { cwd, force = false } = options;
-  const layers = options.layers ?? [...DEFAULT_CONFIG.layers];
+  const layerNames = options.layers ?? DEFAULT_CONFIG.layers.map((l) => l.name);
   const created: string[] = [];
   const skipped: string[] = [];
 
   const config: RulelayersConfig = {
     ...DEFAULT_CONFIG,
-    layers,
+    layers: layerNames.map((name) => ({ name })),
   };
 
   const configPath = join(cwd, CONFIG_FILENAME);
   writeIfMissing(configPath, formatConfig(config), force, created, skipped);
 
-  for (const layer of layers) {
+  for (const layer of layerNames) {
     const root = join(cwd, layerDirName(layer));
     mkdirSync(join(root, "rules"), { recursive: true });
     mkdirSync(join(root, "commands"), { recursive: true });
     mkdirSync(join(root, "subagents"), { recursive: true });
     mkdirSync(join(root, "skills"), { recursive: true });
 
-    if (layer === layers[0]) {
+    if (layer === layerNames[0]) {
       // First (lowest) layer gets the company-style sample
       writeIfMissing(
         join(root, "rules", "overview.md"),
@@ -103,9 +103,9 @@ export function scaffold(options: InitOptions): InitResult {
         created,
         skipped,
       );
-    } else if (layer === layers[1] || (layers.length === 1 && layer === layers[0])) {
+    } else if (layer === layerNames[1] || (layerNames.length === 1 && layer === layerNames[0])) {
       // Second layer gets a project sample when present
-      if (layers.length > 1) {
+      if (layerNames.length > 1) {
         writeIfMissing(
           join(root, "rules", "project.md"),
           SAMPLE_PROJECT_RULE,

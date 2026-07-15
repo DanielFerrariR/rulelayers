@@ -69,7 +69,7 @@ Created by `rulelayers init`:
 
 ```jsonc
 {
-  "$schema": "./node_modules/rulelayers/schema.json",
+  "$schema": "https://raw.githubusercontent.com/DanielFerrariR/rulelayers/main/schema.json",
   "layers": ["company", "project", "user"],
   "rulesync": {
     "command": "rulesync",

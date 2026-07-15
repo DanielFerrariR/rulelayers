@@ -4,7 +4,7 @@
   "description": "Layered rulesync generator — company, project, and user rule layers",
   "type": "module",
   "bin": {
-    "rulelayers": "./dist/cli.js"
+    "rulelayers": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -34,7 +34,16 @@
     "layers",
     "cli"
   ],
+  "author": "DanielFerrariR",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanielFerrariR/rulelayers.git"
+  },
+  "homepage": "https://github.com/DanielFerrariR/rulelayers#readme",
+  "bugs": {
+    "url": "https://github.com/DanielFerrariR/rulelayers/issues"
+  },
   "peerDependencies": {
     "rulesync": ">=10"
   },

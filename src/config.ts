@@ -75,7 +75,7 @@ export function loadConfig(cwd: string): RulelayersConfig {
 export function formatConfig(config: RulelayersConfig): string {
   return `${JSON.stringify(
     {
-      $schema: "./node_modules/rulelayers/schema.json",
+      $schema: "https://raw.githubusercontent.com/DanielFerrariR/rulelayers/main/schema.json",
       layers: config.layers,
       rulesync: config.rulesync,
     },

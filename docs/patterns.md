@@ -1,5 +1,18 @@
 # Patterns
 
+## Replace or new file?
+
+Default to a **new file**, and make the layer explicit in the filename with a `.{layer}` suffix:
+
+```text
+.rulesync.company/rules/style.company.md
+.rulesync.project/rules/style.project.md   ← both appear side by side in .rulesync/rules/
+```
+
+Because the relative paths differ, both files survive the merge — nothing is replaced. This is the **common case**: it keeps every rule visible in the merged output, makes provenance obvious from the filename alone, and avoids accidentally clobbering a lower layer just because someone reused a name.
+
+Only fall back to the same relative path (no `.{layer}` suffix) when you deliberately want to **override or fully supersede** a lower layer's file — that's the less common case, covered next.
+
 ### 1. Same path → replace
 
 ```text
@@ -7,12 +20,16 @@
 .rulesync.project/rules/style.md   ← wins in .rulesync/rules/style.md
 ```
 
+Same relative path is a **hard override** — the higher layer's file wins outright and the lower layer's content is gone. Use this only when you truly want to change or remove lower-layer behavior.
+
 ### 2. Different path → extend
 
 ```text
 .rulesync.company/rules/security.md
 .rulesync.project/rules/api.md     ← both appear in .rulesync/
 ```
+
+This is the **default layering style**: preserve lower layers and add extra files in higher layers. Naming files with a `.{layer}` suffix (see above) is the clearest way to guarantee different paths on purpose, rather than relying on unrelated filenames.
 
 ### 3. Omit a lower-layer file
 

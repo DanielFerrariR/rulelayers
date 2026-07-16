@@ -22,6 +22,8 @@ pre-commit:
 
 pre-push:
   parallel: true
+  # Skip PTY allocation — fails with "device not configured" when macOS PTYs are exhausted.
+  follow: true
   commands:
     typecheck:
       # Avoid parallel auto-install races on node_modules/.bin (pnpm 11 verifyDepsBeforeRun).

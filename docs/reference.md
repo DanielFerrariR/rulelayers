@@ -23,7 +23,6 @@ Exit non-zero on invalid config/JSON/frontmatter issues, or if rulesync exits no
 # rulelayers
 .rulesync/
 .rulesync.user/
-rulelayers.local.jsonc
 ```
 
 Commit `.rulesync.company/` and `.rulesync.project/` (or your shared layers). Keep `.rulesync.user/` and the merged `.rulesync/` out of git — the merge includes personal overrides.

@@ -30,7 +30,7 @@ description: Project-specific conventions
 Add project-only guidance here, or create a file with the same relative path as a company rule to override it.
 `;
 
-const GITIGNORE_ENTRIES = [MERGED_DIR + "/", ".rulesync.user/", "rulelayers.local.jsonc"];
+const GITIGNORE_ENTRIES = [MERGED_DIR + "/", ".rulesync.user/"];
 
 export interface InitOptions {
   cwd: string;

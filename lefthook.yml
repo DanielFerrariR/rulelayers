@@ -24,6 +24,7 @@ pre-push:
   parallel: true
   commands:
     typecheck:
-      run: pnpm run typecheck
+      # Avoid parallel auto-install races on node_modules/.bin (pnpm 11 verifyDepsBeforeRun).
+      run: PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false pnpm run typecheck
     knip:
-      run: pnpm run knip
+      run: PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false pnpm run knip

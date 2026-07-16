@@ -1,6 +1,6 @@
 {
   "name": "rulelayers",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Layered rulesync generator — company, project, and user rule layers",
   "type": "module",
   "bin": {
@@ -22,7 +22,11 @@
     "format:fix": "oxfmt .",
     "knip": "knip",
     "prepare": "lefthook install || true",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "npm publish --access public"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=20"

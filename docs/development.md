@@ -1,15 +1,17 @@
 # Development
 
-Build uses plain `tsc` (TypeScript 7) — no bundler. `npm run typecheck` runs the same compiler with `noEmit`.
+Build uses plain `tsc` (TypeScript 7) — no bundler. `pnpm run typecheck` runs the same compiler with `noEmit`.
+
+Requires **Node.js ≥ 22** and [pnpm](https://pnpm.io/) 11 (see `packageManager` in `package.json`). The published CLI still runs on Node ≥ 20.
 
 ```bash
-npm install          # also installs lefthook git hooks via prepare
-npm test
-npm run typecheck
-npm run lint
-npm run format
-npm run knip
-npm run build
+pnpm install          # also installs lefthook git hooks via prepare
+pnpm test
+pnpm run typecheck
+pnpm run lint
+pnpm run format
+pnpm run knip
+pnpm run build
 node dist/cli.js --help
 ```
 
@@ -21,7 +23,7 @@ node dist/cli.js --help
 | **pre-push**   | `tsc` typecheck + `knip`                 |
 
 ```bash
-npx lefthook install   # if hooks were skipped
+pnpm exec lefthook install   # if hooks were skipped
 ```
 
 CI (GitHub Actions) runs the same checks on push/PR to `main`: typecheck, oxlint, oxfmt, knip, tests, and build.
@@ -31,7 +33,7 @@ CI (GitHub Actions) runs the same checks on push/PR to `main`: typecheck, oxlint
 Bump `version` in `package.json`, then:
 
 ```bash
-npm run release
+pnpm run release
 ```
 
-This runs `npm publish --access public`. `prepublishOnly` builds `dist/` first. You must be logged in to npm (`npm login`) and have publish rights for the `rulelayers` package.
+This runs `pnpm publish --access public`. `prepublishOnly` builds `dist/` first. You must be logged in to npm (`npm login`) and have publish rights for the `rulelayers` package.

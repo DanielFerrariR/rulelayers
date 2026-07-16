@@ -6,17 +6,17 @@ pre-commit:
       glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
       run: |
         if [ -n "{staged_files}" ]; then
-          npx oxlint --fix {staged_files}
+          pnpm exec oxlint --fix {staged_files}
         fi
       stage_fixed: true
     oxfmt:
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,md}"
       exclude:
         - package.json
-        - package-lock.json
+        - pnpm-lock.yaml
       run: |
         if [ -n "{staged_files}" ]; then
-          npx oxfmt {staged_files}
+          pnpm exec oxfmt {staged_files}
         fi
       stage_fixed: true
 
@@ -24,6 +24,6 @@ pre-push:
   parallel: true
   commands:
     typecheck:
-      run: npm run typecheck
+      run: pnpm run typecheck
     knip:
-      run: npm run knip
+      run: pnpm run knip

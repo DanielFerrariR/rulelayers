@@ -22,12 +22,13 @@
     "format:fix": "oxfmt .",
     "knip": "knip",
     "prepare": "lefthook install || true",
-    "prepublishOnly": "npm run build",
-    "release": "npm publish --access public"
+    "prepublishOnly": "pnpm run build",
+    "release": "pnpm publish --access public"
   },
   "publishConfig": {
     "access": "public"
   },
+  "packageManager": "pnpm@11.5.2",
   "engines": {
     "node": ">=20"
   },

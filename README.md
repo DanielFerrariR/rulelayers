@@ -50,12 +50,12 @@ rulelayers generate -v            # verbose (includes omit reasons)
 
 ## Docs
 
-| Topic | Doc |
-| ----- | --- |
-| Mental model & `rulelayers.jsonc` | [docs/configuration.md](docs/configuration.md) |
-| Replace / extend / omit / merge rules | [docs/patterns.md](docs/patterns.md) |
-| CLI, gitignore, CI | [docs/reference.md](docs/reference.md) |
-| Contributing & publishing | [docs/development.md](docs/development.md) |
+| Topic                                 | Doc                                            |
+| ------------------------------------- | ---------------------------------------------- |
+| Mental model & `rulelayers.jsonc`     | [docs/configuration.md](docs/configuration.md) |
+| Replace / extend / omit / merge rules | [docs/patterns.md](docs/patterns.md)           |
+| CLI, gitignore, CI                    | [docs/reference.md](docs/reference.md)         |
+| Contributing & publishing             | [docs/development.md](docs/development.md)     |
 
 ## License
 

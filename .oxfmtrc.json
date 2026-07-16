@@ -7,11 +7,5 @@
   "singleQuote": false,
   "trailingComma": "all",
   "arrowParens": "always",
-  "ignorePatterns": [
-    "package.json",
-    "package-lock.json",
-    "node_modules/**",
-    "dist/**",
-    "coverage/**"
-  ]
+  "ignorePatterns": ["package.json", "pnpm-lock.yaml", "node_modules/**", "dist/**", "coverage/**"]
 }

@@ -1,0 +1,8 @@
+# pnpm project settings (single-package repo; not a multi-package workspace)
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  tldjs: false
+minimumReleaseAgeExclude:
+  - knip@6.27.0
+  - rulesync@10.0.0

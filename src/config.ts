@@ -18,6 +18,8 @@ export interface LayerSource {
   package?: string;
   /** Subpath inside the package (overrides package.json `rulelayers` root). */
   path?: string;
+  /** Ordered low → high. When set, filenames may use these suffixes within the layer. */
+  sublayers?: string[];
 }
 
 export interface RulelayersConfig {
@@ -42,6 +44,30 @@ function defaultNameFromPackage(packageName: string): string {
   return base.replace(/^@/, "");
 }
 
+function normalizeSublayers(raw: unknown, layerLabel: string): string[] | undefined {
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error(
+      `${CONFIG_FILENAME}: layer "${layerLabel}" "sublayers" must be a non-empty array of strings`,
+    );
+  }
+  const sublayers: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of raw) {
+    if (typeof entry !== "string" || entry.length === 0) {
+      throw new Error(
+        `${CONFIG_FILENAME}: layer "${layerLabel}" each sublayer must be a non-empty string`,
+      );
+    }
+    if (seen.has(entry)) {
+      throw new Error(`${CONFIG_FILENAME}: layer "${layerLabel}" duplicate sublayer "${entry}"`);
+    }
+    seen.add(entry);
+    sublayers.push(entry);
+  }
+  return sublayers;
+}
+
 export function normalizeLayer(raw: unknown): LayerSource {
   if (typeof raw === "string") {
     if (raw.length === 0) {
@@ -52,7 +78,7 @@ export function normalizeLayer(raw: unknown): LayerSource {
 
   if (raw === undefined || raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     throw new Error(
-      `${CONFIG_FILENAME}: each layer must be a string or { name?, package?, path? } object`,
+      `${CONFIG_FILENAME}: each layer must be a string or { name?, package?, path?, sublayers? } object`,
     );
   }
 
@@ -73,19 +99,47 @@ export function normalizeLayer(raw: unknown): LayerSource {
     throw new Error(`${CONFIG_FILENAME}: layer needs "name" or "package"`);
   }
 
+  const sublayers = normalizeSublayers(o.sublayers, name);
+
   const layer: LayerSource = { name };
   if (pkg) layer.package = pkg;
   if (path) layer.path = path;
+  if (sublayers) layer.sublayers = sublayers;
   return layer;
 }
 
-function serializeLayer(layer: LayerSource): string | Record<string, string> {
-  if (!layer.package && !layer.path) {
+/** Ensure physical layer names and all sublayer names are globally unique. */
+function validateLayerSublayerNames(layers: LayerSource[]): void {
+  const layerNames = new Set(layers.map((l) => l.name));
+  const seenSublayers = new Map<string, string>(); // sublayer → first layer that declared it
+
+  for (const layer of layers) {
+    if (!layer.sublayers) continue;
+    for (const sub of layer.sublayers) {
+      if (layerNames.has(sub)) {
+        throw new Error(
+          `${CONFIG_FILENAME}: sublayer "${sub}" collides with a physical layer name (layer/sublayer names must be disjoint)`,
+        );
+      }
+      const previous = seenSublayers.get(sub);
+      if (previous !== undefined) {
+        throw new Error(
+          `${CONFIG_FILENAME}: sublayer "${sub}" is declared on both layer "${previous}" and layer "${layer.name}" (sublayer names must be globally unique)`,
+        );
+      }
+      seenSublayers.set(sub, layer.name);
+    }
+  }
+}
+
+function serializeLayer(layer: LayerSource): string | Record<string, string | string[]> {
+  if (!layer.package && !layer.path && !layer.sublayers) {
     return layer.name;
   }
-  const out: Record<string, string> = { name: layer.name };
+  const out: Record<string, string | string[]> = { name: layer.name };
   if (layer.package) out.package = layer.package;
   if (layer.path) out.path = layer.path;
+  if (layer.sublayers) out.sublayers = layer.sublayers;
   return out;
 }
 
@@ -111,6 +165,7 @@ export function loadConfig(cwd: string): RulelayersConfig {
   }
 
   const layers = layersRaw.map((entry) => normalizeLayer(entry));
+  validateLayerSublayerNames(layers);
 
   const rulesyncRaw =
     raw.rulesync && typeof raw.rulesync === "object"

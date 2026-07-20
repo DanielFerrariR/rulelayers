@@ -269,6 +269,184 @@ describe("mergeLayers", () => {
     expect(result.written).toContain("rules/a.md");
     expect(existsSync(join(cwd, ".rulesync"))).toBe(false);
   });
+
+  it("resolves filename sublayers: replace chain and standalone", () => {
+    const cwd = tempDir();
+    const sublayers = ["company", "project", "user"];
+    write(cwd, ".rulesync.src/rules/unit-testing.md", '---\ntargets: ["*"]\n---\n\ncompany base\n');
+    write(
+      cwd,
+      ".rulesync.src/rules/unit-testing.project.md",
+      '---\ntargets: ["*"]\n---\n\nproject override\n',
+    );
+    write(
+      cwd,
+      ".rulesync.src/rules/unit-testing.project.standalone.md",
+      '---\ntargets: ["*"]\n---\n\nproject extra\n',
+    );
+
+    mergeLayers({
+      cwd,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [{ name: "src", sublayers }],
+      },
+    });
+
+    expect(readFileSync(join(cwd, ".rulesync/rules/unit-testing.md"), "utf8")).toContain(
+      "project override",
+    );
+    expect(readFileSync(join(cwd, ".rulesync/rules/unit-testing.project.md"), "utf8")).toContain(
+      "project extra",
+    );
+  });
+
+  it("higher path sublayer can omit the chain", () => {
+    const cwd = tempDir();
+    write(cwd, ".rulesync.src/rules/legacy.md", '---\ntargets: ["*"]\n---\n\nold\n');
+    write(cwd, ".rulesync.src/rules/legacy.project.md", '---\nomit: true\nreason: "gone"\n---\n\n');
+
+    const result = mergeLayers({
+      cwd,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [{ name: "src", sublayers: ["company", "project"] }],
+      },
+    });
+
+    expect(result.omitted.some((o) => o.path === "rules/legacy.md")).toBe(true);
+    expect(existsSync(join(cwd, ".rulesync/rules/legacy.md"))).toBe(false);
+  });
+
+  it("deep-merges mcp and unions aiignore across sublayer suffixes", () => {
+    const cwd = tempDir();
+    write(
+      cwd,
+      ".rulesync.src/mcp.json",
+      JSON.stringify({ mcpServers: { a: { command: "a" }, shared: { command: "old" } } }),
+    );
+    write(
+      cwd,
+      ".rulesync.src/mcp.project.json",
+      JSON.stringify({ mcpServers: { shared: { command: "new" }, b: { command: "b" } } }),
+    );
+    write(cwd, ".rulesync.src/.aiignore", "secrets/\n");
+    write(cwd, ".rulesync.src/.aiignore.project", "local/\n");
+
+    mergeLayers({
+      cwd,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [{ name: "src", sublayers: ["company", "project"] }],
+      },
+    });
+
+    const mcp = JSON.parse(readFileSync(join(cwd, ".rulesync/mcp.json"), "utf8")) as {
+      mcpServers: Record<string, { command: string }>;
+    };
+    expect(mcp.mcpServers.a.command).toBe("a");
+    expect(mcp.mcpServers.shared.command).toBe("new");
+    expect(mcp.mcpServers.b.command).toBe("b");
+    expect(readFileSync(join(cwd, ".rulesync/.aiignore"), "utf8")).toBe("secrets/\nlocal/\n");
+  });
+
+  it("merges legacy .mcp.{sublayer}.json into mcp.json by sublayer rank", () => {
+    const cwd = tempDir();
+    write(
+      cwd,
+      ".rulesync.src/mcp.json",
+      JSON.stringify({ mcpServers: { a: { command: "a" }, shared: { command: "old" } } }),
+    );
+    write(
+      cwd,
+      ".rulesync.src/.mcp.project.json",
+      JSON.stringify({ mcpServers: { shared: { command: "new" }, b: { command: "b" } } }),
+    );
+
+    mergeLayers({
+      cwd,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [{ name: "src", sublayers: ["company", "project"] }],
+      },
+    });
+
+    const mcp = JSON.parse(readFileSync(join(cwd, ".rulesync/mcp.json"), "utf8")) as {
+      mcpServers: Record<string, { command: string }>;
+    };
+    expect(mcp.mcpServers.shared.command).toBe("new");
+    expect(mcp.mcpServers.a.command).toBe("a");
+    expect(mcp.mcpServers.b.command).toBe("b");
+    expect(existsSync(join(cwd, ".rulesync/.mcp.json"))).toBe(false);
+  });
+
+  it("errors on standalone JSON/ignore filenames", () => {
+    const cwd = tempDir();
+    write(cwd, ".rulesync.src/mcp.project.standalone.json", "{}");
+
+    expect(() =>
+      mergeLayers({
+        cwd,
+        config: {
+          ...DEFAULT_CONFIG,
+          layers: [{ name: "src", sublayers: ["company", "project"] }],
+        },
+      }),
+    ).toThrow(/standalone/);
+  });
+
+  it("without sublayers keeps dotted names and ignores mcp.project.json", () => {
+    const cwd = tempDir();
+    write(cwd, ".rulesync.project/rules/style.project.md", '---\ntargets: ["*"]\n---\n\nkeep\n');
+    write(
+      cwd,
+      ".rulesync.project/mcp.project.json",
+      JSON.stringify({ mcpServers: { x: { command: "x" } } }),
+    );
+    write(
+      cwd,
+      ".rulesync.project/mcp.json",
+      JSON.stringify({ mcpServers: { y: { command: "y" } } }),
+    );
+
+    mergeLayers({
+      cwd,
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "project" }] },
+    });
+
+    expect(existsSync(join(cwd, ".rulesync/rules/style.project.md"))).toBe(true);
+    const mcp = JSON.parse(readFileSync(join(cwd, ".rulesync/mcp.json"), "utf8")) as {
+      mcpServers: Record<string, unknown>;
+    };
+    expect(mcp.mcpServers.y).toBeDefined();
+    expect(mcp.mcpServers.x).toBeUndefined();
+  });
+
+  it("higher physical layer replaces resolved path from lower sublayers", () => {
+    const cwd = tempDir();
+    write(
+      cwd,
+      ".rulesync.src/rules/unit-testing.user.md",
+      '---\ntargets: ["*"]\n---\n\nfrom src user sublayer\n',
+    );
+    write(
+      cwd,
+      ".rulesync.local/rules/unit-testing.md",
+      '---\ntargets: ["*"]\n---\n\nfrom local layer\n',
+    );
+
+    mergeLayers({
+      cwd,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [{ name: "src", sublayers: ["company", "project", "user"] }, { name: "local" }],
+      },
+    });
+
+    expect(readFileSync(join(cwd, ".rulesync/rules/unit-testing.md"), "utf8")).toContain(
+      "from local layer",
+    );
+  });
 });
 
 describe("scaffold", () => {

@@ -5,3 +5,6 @@ dist/
 coverage/
 .rulesync/
 .rulesync.user/
+# Demo user layers in examples/ should be committed
+!examples/**/.rulesync.user/
+!examples/**/.rulesync.user/**

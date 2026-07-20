@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DanielFerrariR/rulelayers/main/schema.json",
+  "layers": [
+    {
+      "name": "src",
+      "sublayers": ["company", "project", "user"],
+    },
+  ],
+  "rulesync": {
+    "command": "rulesync",
+    "args": ["generate", "--targets", "*", "--features", "*"],
+  },
+}

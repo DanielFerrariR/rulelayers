@@ -2,16 +2,28 @@
 
 **Layered [rulesync](https://github.com/dyoshikawa/rulesync) sources** — company standards, project overrides, and personal tweaks — merged into a single `.rulesync/` tree, then handed to `rulesync generate`.
 
+Three common layouts (see [examples/](examples/)):
+
 ```text
-.rulesync.company/   (lowest precedence)
-.rulesync.project/
-.rulesync.user/      (highest precedence)
-        │
-        ▼  rulelayers generate
-   .rulesync/        (merged, generated)
-        │
-        ▼  rulesync generate
-   CLAUDE.md, .cursor/, …  (tool configs)
+1) Multi-folder (default init)
+   .rulesync.company/  →  .rulesync.project/  →  .rulesync.user/
+                         (low ─────────────────────────── high)
+
+2) Single folder + sublayers
+   .rulesync.src/   with  unit-testing.md
+                          unit-testing.project.md
+                          unit-testing.user.md
+                   (suffixes ordered in config.sublayers)
+
+3) Package + local
+   @org/company-rules (npm)  →  .rulesync.project/  →  .rulesync.user/
+
+        │  rulelayers generate
+        ▼
+   .rulesync/          (merged, generated)
+        │  rulesync generate
+        ▼
+   CLAUDE.md, .cursor/, …
 ```
 
 Use this when an org wants shared AI rules that each repo can extend, and each developer can customize locally — without forking the whole ruleset.
@@ -54,6 +66,7 @@ rulelayers generate -v            # verbose (includes omit reasons)
 | ------------------------------------- | ---------------------------------------------- |
 | Mental model & `rulelayers.jsonc`     | [docs/configuration.md](docs/configuration.md) |
 | Replace / extend / omit / merge rules | [docs/patterns.md](docs/patterns.md)           |
+| Example layouts                       | [examples/](examples/)                         |
 | CLI, gitignore, CI                    | [docs/reference.md](docs/reference.md)         |
 | Contributing & publishing             | [docs/development.md](docs/development.md)     |
 

@@ -9,14 +9,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
-import type { RulelayersConfig } from "./config.js";
+import type { LayerSource, RulelayersConfig } from "./config.js";
 import { MERGED_DIR } from "./config.js";
 import { isMarkdownPath, parseFrontmatter } from "./frontmatter.js";
 import { formatLayerLabel, resolveLayerRoot } from "./layers.js";
+import { listSpecialCandidateNames, matchSpecialFile, resolvePathSublayer } from "./sublayers.js";
 
 const PATH_FEATURES = ["rules", "commands", "subagents"] as const;
-const JSON_FILES = ["mcp.json", ".mcp.json", "hooks.json", "permissions.json"] as const;
-const IGNORE_FILES = [".aiignore", ".rulesyncignore"] as const;
 
 interface OmitEvent {
   path: string;
@@ -111,6 +110,24 @@ function readJsonObject(path: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
+type LayerRoot = {
+  name: string;
+  root: string;
+  label: string;
+  fromPackage: boolean;
+  sublayers?: string[];
+};
+
+function toLayerRoot(cwd: string, layer: LayerSource): LayerRoot {
+  return {
+    name: layer.name,
+    root: resolveLayerRoot(cwd, layer),
+    label: formatLayerLabel(layer),
+    fromPackage: Boolean(layer.package),
+    sublayers: layer.sublayers,
+  };
+}
+
 export function mergeLayers(options: MergeOptions): MergeResult {
   const { cwd, config, dryRun = false, verbose = false } = options;
   const log = options.log ?? ((m: string) => console.log(m));
@@ -119,26 +136,10 @@ export function mergeLayers(options: MergeOptions): MergeResult {
   const written: string[] = [];
   const skippedLayers: string[] = [];
 
-  const layerRoots = config.layers.map((layer) => {
-    if (layer.package) {
-      return {
-        name: layer.name,
-        root: resolveLayerRoot(cwd, layer),
-        label: formatLayerLabel(layer),
-        fromPackage: true as const,
-      };
-    }
-    return {
-      name: layer.name,
-      root: resolveLayerRoot(cwd, layer),
-      label: formatLayerLabel(layer),
-      fromPackage: false as const,
-    };
-  });
+  const layerRoots = config.layers.map((layer) => toLayerRoot(cwd, layer));
 
   for (const layer of layerRoots) {
     if (!existsSync(layer.root)) {
-      // Local layers may be absent (e.g. user). Package layers are validated in resolveLayerRoot.
       skippedLayers.push(layer.name);
       if (verbose) {
         log(`skip missing layer directory: .rulesync.${layer.name}`);
@@ -163,6 +164,7 @@ export function mergeLayers(options: MergeOptions): MergeResult {
     omit: boolean;
     reason?: string;
     content: string;
+    rank: number;
   };
 
   for (const feature of PATH_FEATURES) {
@@ -173,28 +175,45 @@ export function mergeLayers(options: MergeOptions): MergeResult {
       const featureRoot = join(layer.root, feature);
       if (!existsSync(featureRoot)) continue;
 
+      // Within this physical layer, collect by resolved outRel; higher sublayer rank wins
+      const layerWinners = new Map<string, PathWinner>();
+
       for (const rel of walkFiles(featureRoot)) {
         const abs = join(featureRoot, rel);
-        const outRel = `${feature}/${rel}`;
+        const resolved = resolvePathSublayer(rel, layer.sublayers);
+        const outRel = `${feature}/${resolved.outRel}`;
         const raw = readFileSync(abs);
 
+        let winner: PathWinner;
         if (isMarkdownPath(rel)) {
           const fm = parseFrontmatter(raw.toString("utf8"));
-          winners.set(outRel, {
+          winner = {
             layer: layer.name,
             absPath: abs,
             omit: fm.omit,
             reason: fm.reason,
             content: fm.omit ? "" : fm.stripped,
-          });
+            rank: resolved.rank,
+          };
         } else {
-          winners.set(outRel, {
+          winner = {
             layer: layer.name,
             absPath: abs,
             omit: false,
             content: raw.toString("utf8"),
-          });
+            rank: resolved.rank,
+          };
         }
+
+        const prev = layerWinners.get(outRel);
+        if (!prev || winner.rank >= prev.rank) {
+          layerWinners.set(outRel, winner);
+        }
+      }
+
+      // Physical layer last-wins on each resolved path
+      for (const [outRel, winner] of layerWinners) {
+        winners.set(outRel, winner);
       }
     }
 
@@ -268,7 +287,6 @@ export function mergeLayers(options: MergeOptions): MergeResult {
       const dest = join(outRoot, "skills", skillName);
       cpSync(winner.absDir, dest, { recursive: true });
 
-      // Strip omit/reason from SKILL.md if they somehow weren't omit:true
       const skillMdDest = join(dest, "SKILL.md");
       if (existsSync(skillMdDest)) {
         const fm = parseFrontmatter(readFileSync(skillMdDest, "utf8"));
@@ -277,21 +295,49 @@ export function mergeLayers(options: MergeOptions): MergeResult {
     }
   }
 
-  // --- JSON files ---
-  // Prefer mcp.json over .mcp.json when both appear after merge
+  // --- JSON files (with optional sublayer suffixes) ---
+  type JsonPiece = { accumKey: string; rank: number; obj: Record<string, unknown> };
   const jsonAccum: Record<string, Record<string, unknown>> = {};
 
   for (const layer of layerRoots) {
     if (!existsSync(layer.root)) continue;
-    for (const name of JSON_FILES) {
+
+    // Reject .standalone on JSON/ignore-looking top-level names
+    for (const entry of readdirSync(layer.root, { withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      if (entry.name.includes(".standalone")) {
+        matchSpecialFile(entry.name, layer.sublayers); // throws when it looks like JSON/ignore
+      }
+    }
+
+    const pieces: JsonPiece[] = [];
+    for (const name of listSpecialCandidateNames(layer.sublayers)) {
+      if (!name.endsWith(".json")) continue;
       const abs = join(layer.root, name);
       if (!existsSync(abs) || !statSync(abs).isFile()) continue;
-      const current = jsonAccum[name] ?? {};
-      jsonAccum[name] = deepMerge(current, readJsonObject(abs));
+      const match = matchSpecialFile(name, layer.sublayers);
+      if (!match) continue;
+      pieces.push({
+        accumKey: match.accumKey,
+        rank: match.rank,
+        obj: readJsonObject(abs),
+      });
+    }
+
+    pieces.sort((a, b) => a.rank - b.rank || a.accumKey.localeCompare(b.accumKey));
+
+    const layerJson: Record<string, Record<string, unknown>> = {};
+    for (const piece of pieces) {
+      const current = layerJson[piece.accumKey] ?? {};
+      layerJson[piece.accumKey] = deepMerge(current, piece.obj);
+    }
+
+    for (const [accumKey, obj] of Object.entries(layerJson)) {
+      const current = jsonAccum[accumKey] ?? {};
+      jsonAccum[accumKey] = deepMerge(current, obj);
     }
   }
 
-  // Collapse legacy .mcp.json into mcp.json if both exist
   if (jsonAccum["mcp.json"] && jsonAccum[".mcp.json"]) {
     jsonAccum["mcp.json"] = deepMerge(jsonAccum[".mcp.json"], jsonAccum["mcp.json"]);
     delete jsonAccum[".mcp.json"];
@@ -301,35 +347,41 @@ export function mergeLayers(options: MergeOptions): MergeResult {
   }
 
   for (const [name, obj] of Object.entries(jsonAccum)) {
-    const outRel = name;
-    written.push(outRel);
+    written.push(name);
     if (!dryRun) {
-      const dest = join(outRoot, outRel);
+      const dest = join(outRoot, name);
       ensureParent(dest);
       writeFileSync(dest, `${JSON.stringify(obj, null, 2)}\n`, "utf8");
     }
   }
 
-  // --- Ignore files ---
-  for (const name of IGNORE_FILES) {
+  // --- Ignore files (with optional sublayer suffixes) ---
+  for (const canonical of [".aiignore", ".rulesyncignore"] as const) {
     const parts: string[] = [];
     for (const layer of layerRoots) {
       if (!existsSync(layer.root)) continue;
-      const abs = join(layer.root, name);
-      if (existsSync(abs) && statSync(abs).isFile()) {
-        parts.push(readFileSync(abs, "utf8"));
+
+      const layerParts: Array<{ rank: number; text: string }> = [];
+      for (const name of listSpecialCandidateNames(layer.sublayers)) {
+        if (!name.startsWith(canonical)) continue;
+        const abs = join(layer.root, name);
+        if (!existsSync(abs) || !statSync(abs).isFile()) continue;
+        const match = matchSpecialFile(name, layer.sublayers);
+        if (!match || match.canonical !== canonical) continue;
+        layerParts.push({ rank: match.rank, text: readFileSync(abs, "utf8") });
+      }
+      layerParts.sort((a, b) => a.rank - b.rank);
+      for (const p of layerParts) {
+        parts.push(p.text);
       }
     }
     if (parts.length === 0) continue;
     const merged = mergeIgnoreLines(...parts);
-    written.push(name);
+    written.push(canonical);
     if (!dryRun) {
-      writeFileSync(join(outRoot, name), merged, "utf8");
+      writeFileSync(join(outRoot, canonical), merged, "utf8");
     }
   }
-
-  // Copy any other top-level files from highest layer that aren't handled?
-  // v1: only the documented features — skip unknown extras to stay predictable.
 
   if (verbose && !dryRun) {
     log(`wrote ${written.length} path(s) to ${MERGED_DIR}/`);

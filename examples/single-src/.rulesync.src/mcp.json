@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "company-docs": {
+      "command": "npx",
+      "args": ["-y", "fake-company-mcp"]
+    },
+    "shared": {
+      "command": "npx",
+      "args": ["-y", "fake-shared-mcp"]
+    }
+  }
+}

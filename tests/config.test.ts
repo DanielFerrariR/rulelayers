@@ -88,4 +88,67 @@ describe("loadConfig", () => {
     expect(withPkg).toContain('"package": "@acme/rules"');
     expect(withPkg).toContain('"name": "rules"');
   });
+
+  it("loads sublayers and serializes them", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [{ "name": "src", "sublayers": ["company", "project", "user"] }]
+}
+`,
+    );
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers).toEqual([{ name: "src", sublayers: ["company", "project", "user"] }]);
+    expect(formatConfig(cfg)).toContain('"sublayers"');
+  });
+
+  it("rejects empty or duplicate sublayers", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{ "layers": [{ "name": "src", "sublayers": [] }] }\n`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/non-empty array/);
+
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{ "layers": [{ "name": "src", "sublayers": ["a", "a"] }] }\n`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/duplicate sublayer/);
+  });
+
+  it("rejects layer/sublayer name collisions", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [
+    { "name": "src", "sublayers": ["company", "project"] },
+    "project"
+  ]
+}
+`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/collides with a physical layer name/);
+  });
+
+  it("rejects the same sublayer name on multiple layers", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [
+    { "name": "src", "sublayers": ["company"] },
+    { "name": "rules", "sublayers": ["company"] }
+  ]
+}
+`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/globally unique|declared on both/);
+  });
 });

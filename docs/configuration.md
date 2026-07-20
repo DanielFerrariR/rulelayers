@@ -11,7 +11,7 @@
 
 Default layers (low → high precedence): **`company` → `project` → `user`**.
 
-Local layers live in `.rulesync.<layerName>/`. A layer can also come from an **npm package** (see below).
+Local layers live in `.rulesync.<layerName>/`. A layer can also come from an **npm package** (see below). Optional **`sublayers`** encode company/project/user (etc.) in filenames inside one physical folder — see [Sublayers](#sublayers) and [examples/](../examples/).
 
 ## `rulelayers.jsonc`
 
@@ -28,7 +28,7 @@ Created by `rulelayers init`:
 }
 ```
 
-- **`layers`**: ordered list, **lowest precedence first**. Strings (e.g. `"project"`) map to `.rulesync.<name>/`. Objects can pull a layer from an npm package.
+- **`layers`**: ordered list, **lowest precedence first**. Strings (e.g. `"project"`) map to `.rulesync.<name>/`. Objects can pull a layer from an npm package and/or declare `sublayers`.
 - **`rulesync.command`**: binary to run after merge (default `rulesync`). Local `node_modules/.bin/rulesync` is preferred when present.
 - **`rulesync.args`**: argv passed to that command.
 
@@ -37,6 +37,35 @@ Custom local layers:
 ```bash
 rulelayers init --layers org,team,repo,dev
 ```
+
+## Sublayers
+
+Any layer object may declare `sublayers` (ordered **low → high**). Filenames may then use those suffixes:
+
+```jsonc
+{
+  "layers": [
+    {
+      "name": "src",
+      "sublayers": ["company", "project", "user"],
+    },
+  ],
+}
+```
+
+```text
+.rulesync.src/rules/unit-testing.md
+.rulesync.src/rules/unit-testing.project.md
+.rulesync.src/mcp.project.json
+.rulesync.src/.aiignore.project
+```
+
+- Path features: higher sublayer **replaces** the same resolved path; `.standalone` keeps a side file (e.g. `unit-testing.project.standalone.md` → `unit-testing.project.md`).
+- JSON / ignore: higher sublayer **deep-merges** / **unions** into the canonical name. `.standalone` is **not** allowed on these files.
+- Physical layer names and all sublayer names must be **globally unique** (no sublayer may reuse a physical layer name or appear on more than one layer).
+- Priority: later entries in `layers` beat earlier ones; within a layer, later `sublayers` beat earlier ones.
+
+Runnable demo: [examples/single-src](../examples/single-src/).
 
 ## npm package layers
 
@@ -55,6 +84,7 @@ npm install -D @acme/company-rules
 - **`package`**: npm package name to resolve from `node_modules` (required for package layers).
 - **`name`**: label used in logs/omits. If omitted, defaults to the package basename (`@acme/company-rules` → `company-rules`).
 - **`path`**: optional subpath inside the package. Overrides the package’s `rulelayers` root when both are set.
+- **`sublayers`**: optional filename suffixes inside that package root (same rules as local layers).
 
 Package authors can declare the layer root in their `package.json`:
 
@@ -81,3 +111,5 @@ Monorepo-style example (one package, multiple layer folders):
 ```
 
 Unresolved packages fail `generate` (install the dependency first). Missing _local_ layer dirs are still skipped (e.g. optional `user`).
+
+See also [examples/package-layer](../examples/package-layer/).

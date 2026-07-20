@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "shared": {
+      "command": "npx",
+      "args": ["-y", "fake-shared-mcp-project"]
+    },
+    "project-db": {
+      "command": "npx",
+      "args": ["-y", "fake-project-mcp"]
+    }
+  }
+}

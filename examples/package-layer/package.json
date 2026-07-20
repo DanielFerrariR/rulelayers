@@ -1,0 +1,7 @@
+{
+  "name": "package-layer-example",
+  "private": true,
+  "devDependencies": {
+    "@examples/company-rules": "file:./packages/company-rules"
+  }
+}

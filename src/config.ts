@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { parse as parseJsonc, type ParseError } from "jsonc-parser";
 
 export const CONFIG_FILENAME = "rulelayers.jsonc";
-/** Optional personal override; when present, fully replaces `rulelayers.jsonc` (no merge). */
-export const USER_CONFIG_FILENAME = "rulelayers.user.jsonc";
+/** Optional local override; when present, fully replaces `rulelayers.jsonc` (no merge). */
+export const LOCAL_CONFIG_FILENAME = "rulelayers.local.jsonc";
 export const DEFAULT_LAYERS = ["company", "project", "user"] as const;
 export const MERGED_DIR = ".rulesync";
 export const DEFAULT_STANDALONE_SUFFIX = "standalone";
@@ -183,10 +183,10 @@ function serializeLayer(layer: LayerSource): string | Record<string, string | st
   return out;
 }
 
-/** Which config file `loadConfig` will use (user overrides project when both exist). */
+/** Which config file `loadConfig` will use (local overrides project when both exist). */
 export function resolveConfigFilename(cwd: string): string {
-  if (existsSync(join(cwd, USER_CONFIG_FILENAME))) {
-    return USER_CONFIG_FILENAME;
+  if (existsSync(join(cwd, LOCAL_CONFIG_FILENAME))) {
+    return LOCAL_CONFIG_FILENAME;
   }
   return CONFIG_FILENAME;
 }

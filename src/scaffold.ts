@@ -6,7 +6,7 @@ import {
   formatConfig,
   layerDirName,
   MERGED_DIR,
-  USER_CONFIG_FILENAME,
+  LOCAL_CONFIG_FILENAME,
   type RulelayersConfig,
 } from "./config.js";
 
@@ -31,7 +31,7 @@ description: Project-specific conventions
 Add project-only guidance here, or create a file with the same relative path as a company rule to override it.
 `;
 
-const GITIGNORE_ENTRIES = [MERGED_DIR + "/", ".rulesync.user/", USER_CONFIG_FILENAME];
+const GITIGNORE_ENTRIES = [MERGED_DIR + "/", ".rulesync.user/", LOCAL_CONFIG_FILENAME];
 
 export interface InitOptions {
   cwd: string;

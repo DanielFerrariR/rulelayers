@@ -2,13 +2,13 @@
 
 ## Mental model
 
-| Path                    | Role                                                       | Commit?                                            |
-| ----------------------- | ---------------------------------------------------------- | -------------------------------------------------- |
-| `.rulesync.{layer}/`    | Editable source for that layer                             | Yes for shared layers; usually **no** for `user`   |
-| `.rulesync/`            | **Generated** merge output (rulesync input)                | **No** — includes user overrides; always gitignore |
-| `rulelayers.jsonc`      | Project-level settings: layers + how to invoke rulesync    | Yes                                                |
-| `rulelayers.user.jsonc` | Optional personal config; **fully replaces** project file  | **No**                                             |
-| `rulesync.jsonc`        | rulesync targets/features (project root only; not layered) | Yes                                                |
+| Path                     | Role                                                       | Commit?                                            |
+| ------------------------ | ---------------------------------------------------------- | -------------------------------------------------- |
+| `.rulesync.{layer}/`     | Editable source for that layer                             | Yes for shared layers; usually **no** for `user`   |
+| `.rulesync/`             | **Generated** merge output (rulesync input)                | **No** — includes user overrides; always gitignore |
+| `rulelayers.jsonc`       | Project-level settings: layers + how to invoke rulesync    | Yes                                                |
+| `rulelayers.local.jsonc` | Optional local config; **fully replaces** project file     | **No**                                             |
+| `rulesync.jsonc`         | rulesync targets/features (project root only; not layered) | Yes                                                |
 
 Default layers (low → high precedence): **`company` → `project` → `user`**.
 
@@ -106,7 +106,7 @@ Keep the team `rulelayers.jsonc` without your path; put the path in a personal o
 // rulelayers.jsonc (committed)
 { "layers": ["company", "project", "user"] }
 
-// rulelayers.user.jsonc (gitignored) — full replace, not a merge
+// rulelayers.local.jsonc (gitignored) — full replace, not a merge
 {
   "layers": ["company", "project", { "name": "global", "path": "../global" }, "user"],
 }
@@ -116,13 +116,13 @@ Keep the team `rulelayers.jsonc` without your path; put the path in a personal o
 - **`path`** with **`package`**: subpath inside the package (see below).
 - **`name`**: required for path-only layers (used in logs/omits).
 
-When `rulelayers.user.jsonc` is present it **fully replaces** `rulelayers.jsonc` (project file must still exist). See [User config](#user-config).
+When `rulelayers.local.jsonc` is present it **fully replaces** `rulelayers.jsonc` (project file must still exist). See [Local config](#local-config).
 
 Runnable demo: [examples/cross-project](../examples/cross-project/).
 
-## User config
+## Local config
 
-Optional `rulelayers.user.jsonc` in the project root:
+Optional `rulelayers.local.jsonc` in the project root:
 
 - Same schema as `rulelayers.jsonc`
 - **No merge** — if present, it is the only config used for `generate`

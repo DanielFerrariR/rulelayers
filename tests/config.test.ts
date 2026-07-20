@@ -172,12 +172,12 @@ describe("loadConfig", () => {
     ]);
   });
 
-  it("uses rulelayers.user.jsonc as a full replace when present", () => {
+  it("uses rulelayers.local.jsonc as a full replace when present", () => {
     const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
     dirs.push(cwd);
     writeFileSync(join(cwd, "rulelayers.jsonc"), `{ "layers": ["company", "project", "user"] }\n`);
     writeFileSync(
-      join(cwd, "rulelayers.user.jsonc"),
+      join(cwd, "rulelayers.local.jsonc"),
       `{
   "layers": ["company", "project", { "name": "global", "path": "../global" }, "user"],
   "rulesync": { "args": ["generate", "--targets", "cursor"] }
@@ -194,10 +194,10 @@ describe("loadConfig", () => {
     expect(cfg.rulesync.args).toEqual(["generate", "--targets", "cursor"]);
   });
 
-  it("still requires rulelayers.jsonc when only the user file exists", () => {
+  it("still requires rulelayers.jsonc when only the local file exists", () => {
     const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
     dirs.push(cwd);
-    writeFileSync(join(cwd, "rulelayers.user.jsonc"), `{ "layers": ["user"] }\n`);
+    writeFileSync(join(cwd, "rulelayers.local.jsonc"), `{ "layers": ["user"] }\n`);
     expect(() => loadConfig(cwd)).toThrow(/Missing rulelayers.jsonc/);
   });
 

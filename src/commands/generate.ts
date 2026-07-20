@@ -1,4 +1,4 @@
-import { loadConfig, resolveConfigFilename, USER_CONFIG_FILENAME } from "../config.js";
+import { loadConfig, resolveConfigFilename, LOCAL_CONFIG_FILENAME } from "../config.js";
 import { formatLayerLabel } from "../layers.js";
 import { mergeLayers } from "../merge.js";
 import { runRulesync } from "../rulesync.js";
@@ -16,8 +16,8 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
   const config = loadConfig(cwd);
 
   if (verbose) {
-    if (configFile === USER_CONFIG_FILENAME) {
-      console.log(`config: ${USER_CONFIG_FILENAME} (replaces rulelayers.jsonc)`);
+    if (configFile === LOCAL_CONFIG_FILENAME) {
+      console.log(`config: ${LOCAL_CONFIG_FILENAME} (replaces rulelayers.jsonc)`);
     }
     console.log(`layers (low→high): ${config.layers.map(formatLayerLabel).join(" → ")}`);
   }

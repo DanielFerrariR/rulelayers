@@ -512,6 +512,6 @@ describe("scaffold", () => {
     expect(existsSync(join(cwd, ".rulesync.project"))).toBe(true);
     expect(existsSync(join(cwd, ".rulesync.user"))).toBe(true);
     expect(readFileSync(join(cwd, "rulelayers.jsonc"), "utf8")).toContain('"company"');
-    expect(readFileSync(join(cwd, ".gitignore"), "utf8")).toContain("rulelayers.user.jsonc");
+    expect(readFileSync(join(cwd, ".gitignore"), "utf8")).toContain("rulelayers.local.jsonc");
   });
 });

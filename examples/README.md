@@ -7,7 +7,7 @@ Common ways to use rulelayers:
 | [single-project](single-project/) | `.rulesync.src/` (`project`/`user` suffixes) + optional `.user/` | No company tier — simpler single-repo setup                    |
 | [single-src](single-src/)         | One `.rulesync.src/` + `company`/`project`/`user` sublayers      | Single tree with a company tier (standalone, mcp, ignore demo) |
 | [multi-folder](multi-folder/)     | `.rulesync.company/`, `.project/`, `.user/`                      | Default split; what `rulelayers init` scaffolds                |
-| [cross-project](cross-project/)   | Two projects + `rulelayers.user.jsonc` path global               | Personal prefs reused across repos via one external folder     |
+| [cross-project](cross-project/)   | Two projects + `rulelayers.local.jsonc` path global              | Personal prefs reused across repos via one external folder     |
 | [package-layer](package-layer/)   | npm package + local project/user                                 | Shared org rules published as a package                        |
 
 ## Run merge-only from this repo

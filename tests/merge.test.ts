@@ -467,6 +467,37 @@ describe("mergeLayers", () => {
       "from local layer",
     );
   });
+
+  it("physical user layer overrides src user sublayer when names overlap", () => {
+    const cwd = tempDir();
+    write(
+      cwd,
+      ".rulesync.src/rules/unit-testing.md",
+      '---\ntargets: ["*"]\n---\n\nfrom src base\n',
+    );
+    write(
+      cwd,
+      ".rulesync.src/rules/unit-testing.user.md",
+      '---\ntargets: ["*"]\n---\n\nfrom src user suffix\n',
+    );
+    write(
+      cwd,
+      ".rulesync.user/rules/unit-testing.md",
+      '---\ntargets: ["*"]\n---\n\nfrom user folder\n',
+    );
+
+    mergeLayers({
+      cwd,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [{ name: "src", sublayers: ["project", "user"] }, { name: "user" }],
+      },
+    });
+
+    expect(readFileSync(join(cwd, ".rulesync/rules/unit-testing.md"), "utf8")).toContain(
+      "from user folder",
+    );
+  });
 });
 
 describe("scaffold", () => {

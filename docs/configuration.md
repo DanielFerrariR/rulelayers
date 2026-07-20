@@ -62,8 +62,18 @@ Any layer object may declare `sublayers` (ordered **low → high**). Filenames m
 
 - Path features: higher sublayer **replaces** the same resolved path; the standalone marker (default `.standalone`) keeps a side file (e.g. `unit-testing.project.standalone.md` → `unit-testing.project.md`). Customize per layer with `standaloneSuffix`.
 - JSON / ignore: higher sublayer **deep-merges** / **unions** into the canonical name. The standalone marker is **not** allowed on these files.
-- Physical layer names and all sublayer names must be **globally unique** (no sublayer may reuse a physical layer name or appear on more than one layer). A layer’s standalone suffix must not collide with that layer’s sublayers.
+- Sublayer names must be **unique across layers** (the same suffix may not appear on more than one layer). A sublayer **may** share a name with a physical layer (e.g. `sublayers: ["project", "user"]` plus an optional `.rulesync.user/` folder). A layer’s standalone suffix must not collide with that layer’s sublayers.
 - Priority: later entries in `layers` beat earlier ones; within a layer, later `sublayers` beat earlier ones.
+
+Hybrid (suffixes in `src`, optional personal folder):
+
+```jsonc
+{
+  "layers": [{ "name": "src", "sublayers": ["project", "user"] }, "user"],
+}
+```
+
+Use `unit-testing.md` / `unit-testing.user.md` under `.rulesync.src/`, or put personal overrides in `.rulesync.user/` (later physical layer wins on the same path). Missing local layer dirs are skipped, so teammates without a user folder are fine.
 
 Runnable demo: [examples/single-src](../examples/single-src/).
 

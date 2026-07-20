@@ -141,9 +141,11 @@ export function normalizeLayer(raw: unknown): LayerSource {
   return layer;
 }
 
-/** Ensure physical layer names and all sublayer names are globally unique. */
+/**
+ * Sublayer names must be unique across layers (same suffix on two folders would be confusing).
+ * They may reuse a physical layer name — e.g. `sublayers: [..., "user"]` plus a `.rulesync.user/` layer.
+ */
 function validateLayerSublayerNames(layers: LayerSource[]): void {
-  const layerNames = new Set(layers.map((l) => l.name));
   const seenSublayers = new Map<string, string>(); // sublayer → first layer that declared it
 
   for (const layer of layers) {
@@ -152,11 +154,6 @@ function validateLayerSublayerNames(layers: LayerSource[]): void {
     const suffix = layerStandaloneSuffix(layer);
 
     for (const sub of layer.sublayers) {
-      if (layerNames.has(sub)) {
-        throw new Error(
-          `${CONFIG_FILENAME}: sublayer "${sub}" collides with a physical layer name (layer/sublayer names must be disjoint)`,
-        );
-      }
       if (sub === suffix) {
         throw new Error(
           `${CONFIG_FILENAME}: layer "${layer.name}" sublayer "${sub}" collides with standaloneSuffix`,

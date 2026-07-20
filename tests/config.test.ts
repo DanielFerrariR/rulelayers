@@ -217,20 +217,21 @@ describe("loadConfig", () => {
     expect(() => loadConfig(cwd)).toThrow(/duplicate sublayer/);
   });
 
-  it("rejects layer/sublayer name collisions", () => {
+  it("allows a sublayer name that matches a physical layer", () => {
     const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
     dirs.push(cwd);
     writeFileSync(
       join(cwd, "rulelayers.jsonc"),
       `{
   "layers": [
-    { "name": "src", "sublayers": ["company", "project"] },
-    "project"
+    { "name": "src", "sublayers": ["project", "user"] },
+    "user"
   ]
 }
 `,
     );
-    expect(() => loadConfig(cwd)).toThrow(/collides with a physical layer name/);
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers).toEqual([{ name: "src", sublayers: ["project", "user"] }, { name: "user" }]);
   });
 
   it("rejects the same sublayer name on multiple layers", () => {

@@ -35,7 +35,7 @@
                 "minItems": 1,
                 "items": { "type": "string", "minLength": 1 },
                 "uniqueItems": true,
-                "description": "Ordered low → high filename suffixes within this layer (must be unique across the whole config and must not collide with any physical layer name)"
+                "description": "Ordered low → high filename suffixes within this layer (must be unique across layers; may reuse a physical layer name, e.g. user)"
               },
               "standaloneSuffix": {
                 "type": "string",

@@ -1,23 +1,20 @@
 # https://lefthook.dev/
+# When `{staged_files}` is in `run`, lefthook skips the command if nothing matches.
+# Do not wrap with `if [ -n "{staged_files}" ]` — multiple files expand to
+# separately quoted args and break `[` ("too many arguments").
 pre-commit:
   parallel: true
   commands:
     oxlint:
       glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
-      run: |
-        if [ -n "{staged_files}" ]; then
-          pnpm exec oxlint --fix {staged_files}
-        fi
+      run: pnpm exec oxlint --fix {staged_files}
       stage_fixed: true
     oxfmt:
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,md}"
       exclude:
         - package.json
         - pnpm-lock.yaml
-      run: |
-        if [ -n "{staged_files}" ]; then
-          pnpm exec oxfmt {staged_files}
-        fi
+      run: pnpm exec oxfmt {staged_files}
       stage_fixed: true
 
 pre-push:

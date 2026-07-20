@@ -2,12 +2,13 @@
 
 ## Mental model
 
-| Path                 | Role                                                       | Commit?                                            |
-| -------------------- | ---------------------------------------------------------- | -------------------------------------------------- |
-| `.rulesync.{layer}/` | Editable source for that layer                             | Yes for shared layers; usually **no** for `user`   |
-| `.rulesync/`         | **Generated** merge output (rulesync input)                | **No** — includes user overrides; always gitignore |
-| `rulelayers.jsonc`   | Project-level settings: layers + how to invoke rulesync    | Yes                                                |
-| `rulesync.jsonc`     | rulesync targets/features (project root only; not layered) | Yes                                                |
+| Path                    | Role                                                       | Commit?                                            |
+| ----------------------- | ---------------------------------------------------------- | -------------------------------------------------- |
+| `.rulesync.{layer}/`    | Editable source for that layer                             | Yes for shared layers; usually **no** for `user`   |
+| `.rulesync/`            | **Generated** merge output (rulesync input)                | **No** — includes user overrides; always gitignore |
+| `rulelayers.jsonc`      | Project-level settings: layers + how to invoke rulesync    | Yes                                                |
+| `rulelayers.user.jsonc` | Optional personal config; **fully replaces** project file  | **No**                                             |
+| `rulesync.jsonc`        | rulesync targets/features (project root only; not layered) | Yes                                                |
 
 Default layers (low → high precedence): **`company` → `project` → `user`**.
 
@@ -28,7 +29,7 @@ Created by `rulelayers init`:
 }
 ```
 
-- **`layers`**: ordered list, **lowest precedence first**. Strings (e.g. `"project"`) map to `.rulesync.<name>/`. Objects can pull a layer from an npm package and/or declare `sublayers` / `standaloneSuffix`.
+- **`layers`**: ordered list, **lowest precedence first**. Strings (e.g. `"project"`) map to `.rulesync.<name>/`. Objects can pull a layer from a filesystem **`path`**, an npm **`package`**, and/or declare `sublayers` / `standaloneSuffix`.
 - **`rulesync.command`**: binary to run after merge (default `rulesync`). Local `node_modules/.bin/rulesync` is preferred when present.
 - **`rulesync.args`**: argv passed to that command.
 
@@ -94,6 +95,41 @@ On a layer with `sublayers`, path-feature files may end with `.{standaloneSuffix
 ```
 
 Then `unit-testing.project.keep.md` → `.rulesync/rules/unit-testing.project.md`. Each layer can choose its own marker (useful for package layers with a different convention).
+
+## Path layers
+
+Point a layer at a directory outside `.rulesync.<name>/` (relative to the project, or absolute). A common pattern is personal **global** prefs shared across repos.
+
+Keep the team `rulelayers.jsonc` without your path; put the path in a personal override instead:
+
+```jsonc
+// rulelayers.jsonc (committed)
+{ "layers": ["company", "project", "user"] }
+
+// rulelayers.user.jsonc (gitignored) — full replace, not a merge
+{
+  "layers": ["company", "project", { "name": "global", "path": "../global" }, "user"],
+}
+```
+
+- **`path`** alone: filesystem root for that layer (missing path fails `generate`).
+- **`path`** with **`package`**: subpath inside the package (see below).
+- **`name`**: required for path-only layers (used in logs/omits).
+
+When `rulelayers.user.jsonc` is present it **fully replaces** `rulelayers.jsonc` (project file must still exist). See [User config](#user-config).
+
+Runnable demo: [examples/cross-project](../examples/cross-project/).
+
+## User config
+
+Optional `rulelayers.user.jsonc` in the project root:
+
+- Same schema as `rulelayers.jsonc`
+- **No merge** — if present, it is the only config used for `generate`
+- `rulelayers.jsonc` must still exist (so the project has a committed baseline)
+- Gitignore it (`rulelayers init` adds the entry)
+
+Use this for personal path layers, different rulesync args, or any layers list you do not want in the shared config.
 
 ## npm package layers
 

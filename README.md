@@ -21,6 +21,10 @@ Common layouts (see [examples/](examples/)):
 4) Package + local
    @org/company-rules (npm)  →  .rulesync.project/  →  .rulesync.user/
 
+5) Cross-project path layer (e.g. personal global prefs)
+   .rulesync.company/ → .project/ → ../global (path) → .user/
+   (same `path` folder imported by multiple projects)
+
         │  rulelayers generate
         ▼
    .rulesync/          (merged, generated)

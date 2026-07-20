@@ -23,9 +23,10 @@ Exit non-zero on invalid config/JSON/frontmatter issues, or if rulesync exits no
 # rulelayers
 .rulesync/
 .rulesync.user/
+rulelayers.user.jsonc
 ```
 
-Commit `.rulesync.company/` and `.rulesync.project/` (or your shared layers). Keep `.rulesync.user/` and the merged `.rulesync/` out of git — the merge includes personal overrides.
+Commit `.rulesync.company/` and `.rulesync.project/` (or your shared layers). Keep `.rulesync.user/`, `rulelayers.user.jsonc`, and the merged `.rulesync/` out of git — they include personal overrides.
 
 ## CI
 

@@ -66,10 +66,20 @@ function assertInsidePackage(pkgRoot: string, root: string, packageName: string)
 /**
  * Absolute filesystem root for a layer:
  * - local: `<cwd>/.rulesync.<name>/`
+ * - path: directory relative to cwd (or absolute)
  * - package: installed package dir (+ optional path / package.json `rulelayers` root)
  */
 export function resolveLayerRoot(cwd: string, layer: LayerSource): string {
   if (!layer.package) {
+    if (layer.path) {
+      const root = isAbsolute(layer.path) ? layer.path : join(cwd, layer.path);
+      if (!existsSync(root)) {
+        throw new Error(
+          `Layer "${layer.name}" path not found at ${root} (config path: ${layer.path})`,
+        );
+      }
+      return realpath(root);
+    }
     return join(cwd, layerDirName(layer.name));
   }
 
@@ -94,6 +104,9 @@ export function formatLayerLabel(layer: LayerSource): string {
   if (layer.package) {
     const pathSuffix = layer.path ? `:${layer.path}` : "";
     return `${layer.name} (${layer.package}${pathSuffix})`;
+  }
+  if (layer.path) {
+    return `${layer.name} (${layer.path})`;
   }
   return layer.name;
 }

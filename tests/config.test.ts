@@ -157,14 +157,48 @@ describe("loadConfig", () => {
     ]);
   });
 
-  it("rejects path without package", () => {
+  it("loads path-only layers", () => {
     const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
     dirs.push(cwd);
     writeFileSync(
       join(cwd, "rulelayers.jsonc"),
-      `{ "layers": [{ "name": "x", "path": "oops" }] }\n`,
+      `{ "layers": [{ "name": "global", "path": "../shared-global" }, "project", "user"] }\n`,
     );
-    expect(() => loadConfig(cwd)).toThrow(/path" requires "package/);
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers).toEqual([
+      { name: "global", path: "../shared-global" },
+      { name: "project" },
+      { name: "user" },
+    ]);
+  });
+
+  it("uses rulelayers.user.jsonc as a full replace when present", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(join(cwd, "rulelayers.jsonc"), `{ "layers": ["company", "project", "user"] }\n`);
+    writeFileSync(
+      join(cwd, "rulelayers.user.jsonc"),
+      `{
+  "layers": ["company", "project", { "name": "global", "path": "../global" }, "user"],
+  "rulesync": { "args": ["generate", "--targets", "cursor"] }
+}
+`,
+    );
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers).toEqual([
+      { name: "company" },
+      { name: "project" },
+      { name: "global", path: "../global" },
+      { name: "user" },
+    ]);
+    expect(cfg.rulesync.args).toEqual(["generate", "--targets", "cursor"]);
+  });
+
+  it("still requires rulelayers.jsonc when only the user file exists", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(join(cwd, "rulelayers.user.jsonc"), `{ "layers": ["user"] }\n`);
+    expect(() => loadConfig(cwd)).toThrow(/Missing rulelayers.jsonc/);
   });
 
   it("throws when config missing", () => {

@@ -102,6 +102,30 @@ describe("resolvePackageDir / resolveLayerRoot", () => {
       "company (@acme/rules:dist)",
     );
   });
+
+  it("resolves a path-only layer relative to cwd", () => {
+    const cwd = tempDir();
+    const shared = join(cwd, "shared-global");
+    mkdirSync(join(shared, "rules"), { recursive: true });
+    writeFileSync(join(shared, "rules/a.md"), "x\n");
+
+    const project = join(cwd, "apps", "web");
+    mkdirSync(project, { recursive: true });
+
+    expect(resolveLayerRoot(project, { name: "global", path: "../../shared-global" })).toBe(
+      realpathSync(shared),
+    );
+    expect(formatLayerLabel({ name: "global", path: "../../shared-global" })).toBe(
+      "global (../../shared-global)",
+    );
+  });
+
+  it("throws when path-only layer directory is missing", () => {
+    const cwd = tempDir();
+    expect(() => resolveLayerRoot(cwd, { name: "global", path: "../missing" })).toThrow(
+      /path not found/,
+    );
+  });
 });
 
 describe("mergeLayers with package layer", () => {
@@ -125,5 +149,37 @@ describe("mergeLayers with package layer", () => {
     expect(readFileSync(join(cwd, ".rulesync/rules/shared.md"), "utf8")).toContain("project");
     expect(readFileSync(join(cwd, ".rulesync/rules/only-pkg.md"), "utf8")).toContain("pkg-only");
     expect(readFileSync(join(cwd, ".rulesync/rules/project.md"), "utf8")).toContain("local");
+  });
+
+  it("merges a shared path layer across projects", () => {
+    const root = tempDir();
+    write(root, "global/rules/shared.md", '---\ntargets: ["*"]\n---\n\nglobal\n');
+    write(root, "global/rules/only-global.md", '---\ntargets: ["*"]\n---\n\nglobal-only\n');
+
+    const projectA = join(root, "project-a");
+    mkdirSync(projectA, { recursive: true });
+    write(projectA, ".rulesync.company/rules/base.md", '---\ntargets: ["*"]\n---\n\ncompany\n');
+    write(projectA, ".rulesync.project/rules/shared.md", '---\ntargets: ["*"]\n---\n\nproject-a\n');
+    write(projectA, ".rulesync.user/rules/personal.md", '---\ntargets: ["*"]\n---\n\nuser-a\n');
+
+    mergeLayers({
+      cwd: projectA,
+      config: {
+        ...DEFAULT_CONFIG,
+        layers: [
+          { name: "company" },
+          { name: "project" },
+          { name: "global", path: "../global" },
+          { name: "user" },
+        ],
+      },
+    });
+
+    expect(readFileSync(join(projectA, ".rulesync/rules/shared.md"), "utf8")).toContain("global");
+    expect(readFileSync(join(projectA, ".rulesync/rules/only-global.md"), "utf8")).toContain(
+      "global-only",
+    );
+    expect(readFileSync(join(projectA, ".rulesync/rules/base.md"), "utf8")).toContain("company");
+    expect(readFileSync(join(projectA, ".rulesync/rules/personal.md"), "utf8")).toContain("user-a");
   });
 });

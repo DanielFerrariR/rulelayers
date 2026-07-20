@@ -114,7 +114,8 @@ type LayerRoot = {
   name: string;
   root: string;
   label: string;
-  fromPackage: boolean;
+  /** True when root comes from `package` and/or `path` instead of `.rulesync.<name>/`. */
+  customRoot: boolean;
   sublayers?: string[];
   standaloneSuffix: string;
 };
@@ -124,7 +125,7 @@ function toLayerRoot(cwd: string, layer: LayerSource): LayerRoot {
     name: layer.name,
     root: resolveLayerRoot(cwd, layer),
     label: formatLayerLabel(layer),
-    fromPackage: Boolean(layer.package),
+    customRoot: Boolean(layer.package || layer.path),
     sublayers: layer.sublayers,
     standaloneSuffix: layerStandaloneSuffix(layer),
   };
@@ -144,9 +145,9 @@ export function mergeLayers(options: MergeOptions): MergeResult {
     if (!existsSync(layer.root)) {
       skippedLayers.push(layer.name);
       if (verbose) {
-        log(`skip missing layer directory: .rulesync.${layer.name}`);
+        log(`skip missing layer directory: ${layer.label} → ${layer.root}`);
       }
-    } else if (verbose && layer.fromPackage) {
+    } else if (verbose && layer.customRoot) {
       log(`layer ${layer.label} → ${layer.root}`);
     }
   }

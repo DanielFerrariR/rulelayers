@@ -242,6 +242,7 @@ describe("mergeLayers", () => {
     write(cwd, ".rulesync.company/.aiignore", "secrets/\n");
     write(cwd, ".rulesync.user/.aiignore", "local/\nsecrets/\n");
 
+    const logs: string[] = [];
     const result = mergeLayers({
       cwd,
       config: {
@@ -249,10 +250,12 @@ describe("mergeLayers", () => {
         layers: [{ name: "company" }, { name: "project" }, { name: "user" }],
       },
       verbose: true,
-      log: () => {},
+      log: (m) => logs.push(m),
     });
 
     expect(result.skippedLayers).toContain("project");
+    expect(logs.some((m) => m.includes(`skip missing layer directory: project → `))).toBe(true);
+    expect(logs.some((m) => m.includes(join(cwd, ".rulesync.project")))).toBe(true);
     expect(readFileSync(join(cwd, ".rulesync/.aiignore"), "utf8")).toBe("secrets/\nlocal/\n");
   });
 
@@ -509,5 +512,6 @@ describe("scaffold", () => {
     expect(existsSync(join(cwd, ".rulesync.project"))).toBe(true);
     expect(existsSync(join(cwd, ".rulesync.user"))).toBe(true);
     expect(readFileSync(join(cwd, "rulelayers.jsonc"), "utf8")).toContain('"company"');
+    expect(readFileSync(join(cwd, ".gitignore"), "utf8")).toContain("rulelayers.user.jsonc");
   });
 });

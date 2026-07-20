@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { parse as parseJsonc, type ParseError } from "jsonc-parser";
 
 export const CONFIG_FILENAME = "rulelayers.jsonc";
+/** Optional personal override; when present, fully replaces `rulelayers.jsonc` (no merge). */
+export const USER_CONFIG_FILENAME = "rulelayers.user.jsonc";
 export const DEFAULT_LAYERS = ["company", "project", "user"] as const;
 export const MERGED_DIR = ".rulesync";
 export const DEFAULT_STANDALONE_SUFFIX = "standalone";
@@ -12,12 +14,15 @@ export interface RulesyncConfig {
   args: string[];
 }
 
-/** A merge layer: local `.rulesync.<name>/` and/or an npm package tree. */
+/** A merge layer: local `.rulesync.<name>/`, a filesystem path, and/or an npm package tree. */
 export interface LayerSource {
   name: string;
   /** npm package name (e.g. `@acme/ai-rules`). When set, layer files are read from the package. */
   package?: string;
-  /** Subpath inside the package (overrides package.json `rulelayers` root). */
+  /**
+   * Without `package`: directory relative to the project (or absolute) to use as this layer root.
+   * With `package`: subpath inside the package (overrides package.json `rulelayers` root).
+   */
   path?: string;
   /** Ordered low → high. When set, filenames may use these suffixes within the layer. */
   sublayers?: string[];
@@ -114,10 +119,6 @@ export function normalizeLayer(raw: unknown): LayerSource {
   const path = typeof o.path === "string" && o.path.length > 0 ? o.path : undefined;
   let name = typeof o.name === "string" && o.name.length > 0 ? o.name : undefined;
 
-  if (path && !pkg) {
-    throw new Error(`${CONFIG_FILENAME}: layer "path" requires "package"`);
-  }
-
   if (!name && pkg) {
     name = defaultNameFromPackage(pkg);
   }
@@ -182,12 +183,16 @@ function serializeLayer(layer: LayerSource): string | Record<string, string | st
   return out;
 }
 
-export function loadConfig(cwd: string): RulelayersConfig {
-  const path = join(cwd, CONFIG_FILENAME);
-  if (!existsSync(path)) {
-    throw new Error(`Missing ${CONFIG_FILENAME} in ${cwd}. Run \`rulelayers init\` first.`);
+/** Which config file `loadConfig` will use (user overrides project when both exist). */
+export function resolveConfigFilename(cwd: string): string {
+  if (existsSync(join(cwd, USER_CONFIG_FILENAME))) {
+    return USER_CONFIG_FILENAME;
   }
+  return CONFIG_FILENAME;
+}
 
+function parseConfigFile(cwd: string, filename: string): RulelayersConfig {
+  const path = join(cwd, filename);
   const text = readFileSync(path, "utf8");
   const errors: ParseError[] = [];
   const raw = parseJsonc(text, errors, {
@@ -195,18 +200,18 @@ export function loadConfig(cwd: string): RulelayersConfig {
   }) as Record<string, unknown> | undefined;
 
   if (errors.length > 0 || raw === undefined || raw === null || typeof raw !== "object") {
-    throw new Error(`Failed to parse ${CONFIG_FILENAME}: invalid JSONC`);
+    throw new Error(`Failed to parse ${filename}: invalid JSONC`);
   }
 
   if (raw.standaloneSuffix !== undefined) {
     throw new Error(
-      `${CONFIG_FILENAME}: "standaloneSuffix" belongs on a layer object (next to "sublayers"), not at the top level`,
+      `${filename}: "standaloneSuffix" belongs on a layer object (next to "sublayers"), not at the top level`,
     );
   }
 
   const layersRaw = raw.layers;
   if (!Array.isArray(layersRaw) || layersRaw.length === 0) {
-    throw new Error(`${CONFIG_FILENAME}: "layers" must be a non-empty array`);
+    throw new Error(`${filename}: "layers" must be a non-empty array`);
   }
 
   const layers = layersRaw.map((entry) => normalizeLayer(entry));
@@ -230,6 +235,15 @@ export function loadConfig(cwd: string): RulelayersConfig {
     layers,
     rulesync: { command, args },
   };
+}
+
+export function loadConfig(cwd: string): RulelayersConfig {
+  const projectPath = join(cwd, CONFIG_FILENAME);
+  if (!existsSync(projectPath)) {
+    throw new Error(`Missing ${CONFIG_FILENAME} in ${cwd}. Run \`rulelayers init\` first.`);
+  }
+
+  return parseConfigFile(cwd, resolveConfigFilename(cwd));
 }
 
 export function formatConfig(config: RulelayersConfig): string {

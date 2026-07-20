@@ -65,7 +65,7 @@ Any layer object may declare `sublayers` (ordered **low → high**). Filenames m
 - Sublayer names must be **unique across layers** (the same suffix may not appear on more than one layer). A sublayer **may** share a name with a physical layer (e.g. `sublayers: ["project", "user"]` plus an optional `.rulesync.user/` folder). A layer’s standalone suffix must not collide with that layer’s sublayers.
 - Priority: later entries in `layers` beat earlier ones; within a layer, later `sublayers` beat earlier ones.
 
-Hybrid (suffixes in `src`, optional personal folder):
+Hybrid without a company tier (suffixes in `src`, optional personal folder):
 
 ```jsonc
 {
@@ -75,7 +75,7 @@ Hybrid (suffixes in `src`, optional personal folder):
 
 Use `unit-testing.md` / `unit-testing.user.md` under `.rulesync.src/`, or put personal overrides in `.rulesync.user/` (later physical layer wins on the same path). Missing local layer dirs are skipped, so teammates without a user folder are fine.
 
-Runnable demo: [examples/single-src](../examples/single-src/).
+Runnable demos: [examples/single-project](../examples/single-project/) (no company), [examples/single-src](../examples/single-src/) (company/project/user + standalone).
 
 ### `standaloneSuffix`
 

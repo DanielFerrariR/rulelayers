@@ -2,20 +2,23 @@
 
 **Layered [rulesync](https://github.com/dyoshikawa/rulesync) sources** — company standards, project overrides, and personal tweaks — merged into a single `.rulesync/` tree, then handed to `rulesync generate`.
 
-Three common layouts (see [examples/](examples/)):
+Common layouts (see [examples/](examples/)):
 
 ```text
 1) Multi-folder (default init)
    .rulesync.company/  →  .rulesync.project/  →  .rulesync.user/
                          (low ─────────────────────────── high)
 
-2) Single folder + sublayers
+2) Single project (no company tier)
    .rulesync.src/   with  unit-testing.md
-                          unit-testing.project.md
                           unit-testing.user.md
-                   (suffixes ordered in config.sublayers)
+   .rulesync.user/  (optional; later layer wins)
 
-3) Package + local
+3) Single folder + company/project/user sublayers
+   .rulesync.src/   with  company / project / user suffixes
+                   (see examples/single-src)
+
+4) Package + local
    @org/company-rules (npm)  →  .rulesync.project/  →  .rulesync.user/
 
         │  rulelayers generate

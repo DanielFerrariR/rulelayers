@@ -5,6 +5,7 @@ import { parse as parseJsonc, type ParseError } from "jsonc-parser";
 export const CONFIG_FILENAME = "rulelayers.jsonc";
 export const DEFAULT_LAYERS = ["company", "project", "user"] as const;
 export const MERGED_DIR = ".rulesync";
+export const DEFAULT_STANDALONE_SUFFIX = "standalone";
 
 export interface RulesyncConfig {
   command: string;
@@ -20,6 +21,12 @@ export interface LayerSource {
   path?: string;
   /** Ordered low → high. When set, filenames may use these suffixes within the layer. */
   sublayers?: string[];
+  /**
+   * Filename marker that keeps a sublayer suffix in the output path
+   * (e.g. `unit-testing.project.standalone.md` → `unit-testing.project.md`).
+   * Default: `"standalone"`. Only valid when `sublayers` is set.
+   */
+  standaloneSuffix?: string;
 }
 
 export interface RulelayersConfig {
@@ -37,6 +44,11 @@ export const DEFAULT_CONFIG: RulelayersConfig = {
 
 export function layerDirName(layer: string): string {
   return `${MERGED_DIR}.${layer}`;
+}
+
+/** Effective standalone marker for a layer (default when unset). */
+export function layerStandaloneSuffix(layer: LayerSource): string {
+  return layer.standaloneSuffix ?? DEFAULT_STANDALONE_SUFFIX;
 }
 
 function defaultNameFromPackage(packageName: string): string {
@@ -68,6 +80,21 @@ function normalizeSublayers(raw: unknown, layerLabel: string): string[] | undefi
   return sublayers;
 }
 
+function normalizeStandaloneSuffix(raw: unknown, layerLabel: string): string | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "string" || raw.length === 0) {
+    throw new Error(
+      `${CONFIG_FILENAME}: layer "${layerLabel}" "standaloneSuffix" must be a non-empty string`,
+    );
+  }
+  if (raw.includes(".") || raw.includes("/") || raw.includes("\\")) {
+    throw new Error(
+      `${CONFIG_FILENAME}: layer "${layerLabel}" "standaloneSuffix" must be a single path segment without dots or slashes`,
+    );
+  }
+  return raw;
+}
+
 export function normalizeLayer(raw: unknown): LayerSource {
   if (typeof raw === "string") {
     if (raw.length === 0) {
@@ -78,7 +105,7 @@ export function normalizeLayer(raw: unknown): LayerSource {
 
   if (raw === undefined || raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     throw new Error(
-      `${CONFIG_FILENAME}: each layer must be a string or { name?, package?, path?, sublayers? } object`,
+      `${CONFIG_FILENAME}: each layer must be a string or { name?, package?, path?, sublayers?, standaloneSuffix? } object`,
     );
   }
 
@@ -100,11 +127,19 @@ export function normalizeLayer(raw: unknown): LayerSource {
   }
 
   const sublayers = normalizeSublayers(o.sublayers, name);
+  const standaloneSuffix = normalizeStandaloneSuffix(o.standaloneSuffix, name);
+
+  if (standaloneSuffix !== undefined && !sublayers) {
+    throw new Error(
+      `${CONFIG_FILENAME}: layer "${name}" "standaloneSuffix" requires "sublayers"`,
+    );
+  }
 
   const layer: LayerSource = { name };
   if (pkg) layer.package = pkg;
   if (path) layer.path = path;
   if (sublayers) layer.sublayers = sublayers;
+  if (standaloneSuffix !== undefined) layer.standaloneSuffix = standaloneSuffix;
   return layer;
 }
 
@@ -115,10 +150,18 @@ function validateLayerSublayerNames(layers: LayerSource[]): void {
 
   for (const layer of layers) {
     if (!layer.sublayers) continue;
+
+    const suffix = layerStandaloneSuffix(layer);
+
     for (const sub of layer.sublayers) {
       if (layerNames.has(sub)) {
         throw new Error(
           `${CONFIG_FILENAME}: sublayer "${sub}" collides with a physical layer name (layer/sublayer names must be disjoint)`,
+        );
+      }
+      if (sub === suffix) {
+        throw new Error(
+          `${CONFIG_FILENAME}: layer "${layer.name}" sublayer "${sub}" collides with standaloneSuffix`,
         );
       }
       const previous = seenSublayers.get(sub);
@@ -133,13 +176,14 @@ function validateLayerSublayerNames(layers: LayerSource[]): void {
 }
 
 function serializeLayer(layer: LayerSource): string | Record<string, string | string[]> {
-  if (!layer.package && !layer.path && !layer.sublayers) {
+  if (!layer.package && !layer.path && !layer.sublayers && !layer.standaloneSuffix) {
     return layer.name;
   }
   const out: Record<string, string | string[]> = { name: layer.name };
   if (layer.package) out.package = layer.package;
   if (layer.path) out.path = layer.path;
   if (layer.sublayers) out.sublayers = layer.sublayers;
+  if (layer.standaloneSuffix) out.standaloneSuffix = layer.standaloneSuffix;
   return out;
 }
 
@@ -157,6 +201,12 @@ export function loadConfig(cwd: string): RulelayersConfig {
 
   if (errors.length > 0 || raw === undefined || raw === null || typeof raw !== "object") {
     throw new Error(`Failed to parse ${CONFIG_FILENAME}: invalid JSONC`);
+  }
+
+  if (raw.standaloneSuffix !== undefined) {
+    throw new Error(
+      `${CONFIG_FILENAME}: "standaloneSuffix" belongs on a layer object (next to "sublayers"), not at the top level`,
+    );
   }
 
   const layersRaw = raw.layers;

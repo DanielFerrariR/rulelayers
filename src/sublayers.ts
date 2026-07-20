@@ -1,17 +1,17 @@
 /** Filename sublayer resolution for path features and top-level JSON/ignore files. */
 
+import { DEFAULT_STANDALONE_SUFFIX } from "./config.js";
+
 export interface SublayerResolution {
   /** Resolved output relative path (feature-relative for path features). */
   outRel: string;
   /** Sublayer index (0 = lowest). Unmarked files use 0. */
   rank: number;
-  /** True when `.standalone` was present (path features only). */
+  /** True when the standalone suffix was present (path features only). */
   standalone: boolean;
   /** Matched sublayer name, if any (including implied lowest for unmarked). */
   sublayer?: string;
 }
-
-const STANDALONE = "standalone";
 
 function longestTrailingSublayer(stem: string, sublayers: string[]): string | undefined {
   let matched: string | undefined;
@@ -33,6 +33,7 @@ function longestTrailingSublayer(stem: string, sublayers: string[]): string | un
 export function resolvePathSublayer(
   rel: string,
   sublayers: string[] | undefined,
+  standaloneSuffix: string = DEFAULT_STANDALONE_SUFFIX,
 ): SublayerResolution {
   if (!sublayers || sublayers.length === 0) {
     return { outRel: rel, rank: 0, standalone: false };
@@ -56,16 +57,16 @@ export function resolvePathSublayer(
   let stem = filename.slice(0, dot);
 
   let standalone = false;
-  if (stem.endsWith(`.${STANDALONE}`)) {
+  if (stem.endsWith(`.${standaloneSuffix}`)) {
     standalone = true;
-    stem = stem.slice(0, -(STANDALONE.length + 1));
+    stem = stem.slice(0, -(standaloneSuffix.length + 1));
   }
 
   const matched = longestTrailingSublayer(stem, sublayers);
 
   if (standalone && !matched) {
     throw new Error(
-      `standalone requires a sublayer suffix (one of: ${sublayers.join(", ")}): ${rel}`,
+      `${standaloneSuffix} requires a sublayer suffix (one of: ${sublayers.join(", ")}): ${rel}`,
     );
   }
 
@@ -113,21 +114,25 @@ export interface SpecialFileMatch {
   filename: string;
 }
 
-function looksLikeSpecialWithStandalone(filename: string): boolean {
+function looksLikeSpecialWithStandalone(filename: string, standaloneSuffix: string): boolean {
   const prefixes = ["mcp.", ".mcp.", "hooks.", "permissions.", ".aiignore.", ".rulesyncignore."];
-  return prefixes.some((p) => filename.startsWith(p) && filename.includes(`.${STANDALONE}`));
+  return prefixes.some((p) => filename.startsWith(p) && filename.includes(`.${standaloneSuffix}`));
 }
 
 /**
  * If `filename` is a canonical or sublayer-suffixed JSON/ignore file for this layer, return a match.
- * Throws if `.standalone` is used on these names.
+ * Throws if the standalone suffix is used on these names when sublayers are configured.
  */
 export function matchSpecialFile(
   filename: string,
   sublayers: string[] | undefined,
+  standaloneSuffix: string = DEFAULT_STANDALONE_SUFFIX,
 ): SpecialFileMatch | undefined {
-  if (looksLikeSpecialWithStandalone(filename)) {
-    throw new Error(`.standalone is not supported for JSON/ignore files: ${filename}`);
+  const hasSublayers = Boolean(sublayers && sublayers.length > 0);
+  if (hasSublayers && looksLikeSpecialWithStandalone(filename, standaloneSuffix)) {
+    throw new Error(
+      `.${standaloneSuffix} is not supported for JSON/ignore files: ${filename}`,
+    );
   }
 
   const exact: Array<{ filename: string; canonical: string; accumKey: string }> = [

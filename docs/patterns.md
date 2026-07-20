@@ -28,8 +28,8 @@ When a layer declares `sublayers` in `rulelayers.jsonc`, known suffixes particip
 ```
 
 - Unmarked `unit-testing.md` ≡ lowest sublayer (same as `unit-testing.company.md` when `company` is first).
-- **`.standalone`** keeps the sublayer in the output name so it does not replace the chain.
-- JSON/ignore use the same suffixes but **merge** (deep-merge / line-union), not replace — and **do not** support `.standalone`.
+- **Standalone marker** (default `.standalone`, per-layer via `standaloneSuffix`) keeps the sublayer in the output name so it does not replace the chain.
+- JSON/ignore use the same suffixes but **merge** (deep-merge / line-union), not replace — and **do not** support the standalone marker.
 
 See [examples/](../examples/) for runnable layouts.
 
@@ -53,7 +53,7 @@ With `sublayers`, `style.project.md` resolves to the same output path as `style.
 
 This is the **default layering style** across physical folders: preserve lower layers and add extra files in higher layers.
 
-With `sublayers`, use `.standalone` when you want a side-by-side file (`style.project.md` in the output) instead of replacing `style.md`.
+With `sublayers`, use the standalone marker (default `.standalone`) when you want a side-by-side file (`style.project.md` in the output) instead of replacing `style.md`.
 
 ### 3. Omit a lower-layer file
 
@@ -94,4 +94,4 @@ Recommended split:
 
 Or keep a **single** source folder (e.g. `.rulesync.src`) with `sublayers: ["company", "project", "user"]` — see [examples/single-src](../examples/single-src/).
 
-`rulesync.jsonc` stays at the **project root** (not layered in v1). Point targets/features there, or pass them via `rulelayers.jsonc` → `rulesync.args`.
+`rulesync.jsonc` lives at the **project root** only — it is not layered. Configure rulesync targets/features there, and configure how rulelayers invokes rulesync in `rulelayers.jsonc` (`rulesync.command` / `rulesync.args`).

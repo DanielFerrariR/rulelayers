@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import type { LayerSource, RulelayersConfig } from "./config.js";
-import { MERGED_DIR } from "./config.js";
+import { layerStandaloneSuffix, MERGED_DIR } from "./config.js";
 import { isMarkdownPath, parseFrontmatter } from "./frontmatter.js";
 import { formatLayerLabel, resolveLayerRoot } from "./layers.js";
 import { listSpecialCandidateNames, matchSpecialFile, resolvePathSublayer } from "./sublayers.js";
@@ -116,6 +116,7 @@ type LayerRoot = {
   label: string;
   fromPackage: boolean;
   sublayers?: string[];
+  standaloneSuffix: string;
 };
 
 function toLayerRoot(cwd: string, layer: LayerSource): LayerRoot {
@@ -125,6 +126,7 @@ function toLayerRoot(cwd: string, layer: LayerSource): LayerRoot {
     label: formatLayerLabel(layer),
     fromPackage: Boolean(layer.package),
     sublayers: layer.sublayers,
+    standaloneSuffix: layerStandaloneSuffix(layer),
   };
 }
 
@@ -180,7 +182,7 @@ export function mergeLayers(options: MergeOptions): MergeResult {
 
       for (const rel of walkFiles(featureRoot)) {
         const abs = join(featureRoot, rel);
-        const resolved = resolvePathSublayer(rel, layer.sublayers);
+        const resolved = resolvePathSublayer(rel, layer.sublayers, layer.standaloneSuffix);
         const outRel = `${feature}/${resolved.outRel}`;
         const raw = readFileSync(abs);
 
@@ -302,11 +304,13 @@ export function mergeLayers(options: MergeOptions): MergeResult {
   for (const layer of layerRoots) {
     if (!existsSync(layer.root)) continue;
 
-    // Reject .standalone on JSON/ignore-looking top-level names
-    for (const entry of readdirSync(layer.root, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      if (entry.name.includes(".standalone")) {
-        matchSpecialFile(entry.name, layer.sublayers); // throws when it looks like JSON/ignore
+    // Reject standalone suffix on JSON/ignore-looking top-level names (sublayers only)
+    if (layer.sublayers && layer.sublayers.length > 0) {
+      for (const entry of readdirSync(layer.root, { withFileTypes: true })) {
+        if (!entry.isFile()) continue;
+        if (entry.name.includes(`.${layer.standaloneSuffix}`)) {
+          matchSpecialFile(entry.name, layer.sublayers, layer.standaloneSuffix); // throws when it looks like JSON/ignore
+        }
       }
     }
 
@@ -315,7 +319,7 @@ export function mergeLayers(options: MergeOptions): MergeResult {
       if (!name.endsWith(".json")) continue;
       const abs = join(layer.root, name);
       if (!existsSync(abs) || !statSync(abs).isFile()) continue;
-      const match = matchSpecialFile(name, layer.sublayers);
+      const match = matchSpecialFile(name, layer.sublayers, layer.standaloneSuffix);
       if (!match) continue;
       pieces.push({
         accumKey: match.accumKey,
@@ -366,7 +370,7 @@ export function mergeLayers(options: MergeOptions): MergeResult {
         if (!name.startsWith(canonical)) continue;
         const abs = join(layer.root, name);
         if (!existsSync(abs) || !statSync(abs).isFile()) continue;
-        const match = matchSpecialFile(name, layer.sublayers);
+        const match = matchSpecialFile(name, layer.sublayers, layer.standaloneSuffix);
         if (!match || match.canonical !== canonical) continue;
         layerParts.push({ rank: match.rank, text: readFileSync(abs, "utf8") });
       }

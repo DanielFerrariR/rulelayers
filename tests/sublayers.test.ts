@@ -64,6 +64,20 @@ describe("resolvePathSublayer", () => {
     });
   });
 
+  it("respects a custom standaloneSuffix", () => {
+    expect(resolvePathSublayer("unit-testing.project.keep.md", SUBS, "keep")).toMatchObject({
+      outRel: "unit-testing.project.md",
+      rank: 1,
+      standalone: true,
+      sublayer: "project",
+    });
+    expect(resolvePathSublayer("unit-testing.project.standalone.md", SUBS, "keep")).toMatchObject({
+      outRel: "unit-testing.project.standalone.md",
+      rank: 0,
+      standalone: false,
+    });
+  });
+
   it("keeps unknown dotted names as-is", () => {
     expect(resolvePathSublayer("unit-testing.extra.md", SUBS)).toEqual({
       outRel: "unit-testing.extra.md",
@@ -83,6 +97,7 @@ describe("resolvePathSublayer", () => {
     expect(() => resolvePathSublayer("unit-testing.standalone.md", SUBS)).toThrow(
       /standalone requires/,
     );
+    expect(() => resolvePathSublayer("unit-testing.keep.md", SUBS, "keep")).toThrow(/keep requires/);
   });
 });
 
@@ -114,8 +129,14 @@ describe("matchSpecialFile", () => {
     expect(matchSpecialFile("mcp.project.json", undefined)).toBeUndefined();
   });
 
+  it("allows standalone-looking JSON names when sublayers are unset", () => {
+    expect(matchSpecialFile("mcp.standalone.json", undefined)).toBeUndefined();
+    expect(matchSpecialFile(".aiignore.standalone", undefined)).toBeUndefined();
+  });
+
   it("rejects standalone on JSON/ignore", () => {
     expect(() => matchSpecialFile("mcp.project.standalone.json", SUBS)).toThrow(/standalone/);
     expect(() => matchSpecialFile(".aiignore.project.standalone", SUBS)).toThrow(/standalone/);
+    expect(() => matchSpecialFile("mcp.project.keep.json", SUBS, "keep")).toThrow(/keep/);
   });
 });

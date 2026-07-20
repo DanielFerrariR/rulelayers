@@ -36,6 +36,12 @@
                 "items": { "type": "string", "minLength": 1 },
                 "uniqueItems": true,
                 "description": "Ordered low → high filename suffixes within this layer (must be unique across the whole config and must not collide with any physical layer name)"
+              },
+              "standaloneSuffix": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^./\\\\]+$",
+                "description": "Filename marker that keeps a sublayer suffix in the output path for this layer (default: standalone). Requires sublayers. Must not collide with this layer's sublayers."
               }
             },
             "additionalProperties": false,

@@ -6,8 +6,8 @@
 | -------------------- | --------------------------------------------------- | -------------------------------------------------- |
 | `.rulesync.{layer}/` | Editable source for that layer                      | Yes for shared layers; usually **no** for `user`   |
 | `.rulesync/`         | **Generated** merge output (rulesync input)         | **No** — includes user overrides; always gitignore |
-| `rulelayers.jsonc`   | Layer list + how to invoke rulesync                 | Yes                                                |
-| `rulesync.jsonc`     | rulesync targets/features (unchanged by rulelayers) | Yes                                                |
+| `rulelayers.jsonc`   | Project-level settings: layers + how to invoke rulesync | Yes                                                |
+| `rulesync.jsonc`     | rulesync targets/features (project root only; not layered) | Yes                                             |
 
 Default layers (low → high precedence): **`company` → `project` → `user`**.
 
@@ -28,7 +28,7 @@ Created by `rulelayers init`:
 }
 ```
 
-- **`layers`**: ordered list, **lowest precedence first**. Strings (e.g. `"project"`) map to `.rulesync.<name>/`. Objects can pull a layer from an npm package and/or declare `sublayers`.
+- **`layers`**: ordered list, **lowest precedence first**. Strings (e.g. `"project"`) map to `.rulesync.<name>/`. Objects can pull a layer from an npm package and/or declare `sublayers` / `standaloneSuffix`.
 - **`rulesync.command`**: binary to run after merge (default `rulesync`). Local `node_modules/.bin/rulesync` is preferred when present.
 - **`rulesync.args`**: argv passed to that command.
 
@@ -60,12 +60,30 @@ Any layer object may declare `sublayers` (ordered **low → high**). Filenames m
 .rulesync.src/.aiignore.project
 ```
 
-- Path features: higher sublayer **replaces** the same resolved path; `.standalone` keeps a side file (e.g. `unit-testing.project.standalone.md` → `unit-testing.project.md`).
-- JSON / ignore: higher sublayer **deep-merges** / **unions** into the canonical name. `.standalone` is **not** allowed on these files.
-- Physical layer names and all sublayer names must be **globally unique** (no sublayer may reuse a physical layer name or appear on more than one layer).
+- Path features: higher sublayer **replaces** the same resolved path; the standalone marker (default `.standalone`) keeps a side file (e.g. `unit-testing.project.standalone.md` → `unit-testing.project.md`). Customize per layer with `standaloneSuffix`.
+- JSON / ignore: higher sublayer **deep-merges** / **unions** into the canonical name. The standalone marker is **not** allowed on these files.
+- Physical layer names and all sublayer names must be **globally unique** (no sublayer may reuse a physical layer name or appear on more than one layer). A layer’s standalone suffix must not collide with that layer’s sublayers.
 - Priority: later entries in `layers` beat earlier ones; within a layer, later `sublayers` beat earlier ones.
 
 Runnable demo: [examples/single-src](../examples/single-src/).
+
+### `standaloneSuffix`
+
+On a layer with `sublayers`, path-feature files may end with `.{standaloneSuffix}` (default `standalone`) so the sublayer stays in the output name instead of joining the replace chain:
+
+```jsonc
+{
+  "layers": [
+    {
+      "name": "src",
+      "sublayers": ["company", "project", "user"],
+      "standaloneSuffix": "keep",
+    },
+  ],
+}
+```
+
+Then `unit-testing.project.keep.md` → `.rulesync/rules/unit-testing.project.md`. Each layer can choose its own marker (useful for package layers with a different convention).
 
 ## npm package layers
 
@@ -85,6 +103,7 @@ npm install -D @acme/company-rules
 - **`name`**: label used in logs/omits. If omitted, defaults to the package basename (`@acme/company-rules` → `company-rules`).
 - **`path`**: optional subpath inside the package. Overrides the package’s `rulelayers` root when both are set.
 - **`sublayers`**: optional filename suffixes inside that package root (same rules as local layers).
+- **`standaloneSuffix`**: optional per-layer standalone marker when `sublayers` is set (default `standalone`).
 
 Package authors can declare the layer root in their `package.json`:
 

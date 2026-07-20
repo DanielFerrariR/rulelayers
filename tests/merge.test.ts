@@ -395,6 +395,26 @@ describe("mergeLayers", () => {
     ).toThrow(/standalone/);
   });
 
+  it("allows standalone-looking top-level names when sublayers are unset", () => {
+    const cwd = tempDir();
+    write(cwd, ".rulesync.project/mcp.standalone.json", JSON.stringify({ unused: true }));
+    write(
+      cwd,
+      ".rulesync.project/mcp.json",
+      JSON.stringify({ mcpServers: { y: { command: "y" } } }),
+    );
+    write(cwd, ".rulesync.project/rules/note.standalone.md", '---\ntargets: ["*"]\n---\n\nok\n');
+
+    mergeLayers({
+      cwd,
+      config: { ...DEFAULT_CONFIG, layers: [{ name: "project" }] },
+    });
+
+    expect(existsSync(join(cwd, ".rulesync/mcp.json"))).toBe(true);
+    expect(existsSync(join(cwd, ".rulesync/mcp.standalone.json"))).toBe(false);
+    expect(existsSync(join(cwd, ".rulesync/rules/note.standalone.md"))).toBe(true);
+  });
+
   it("without sublayers keeps dotted names and ignores mcp.project.json", () => {
     const cwd = tempDir();
     write(cwd, ".rulesync.project/rules/style.project.md", '---\ntargets: ["*"]\n---\n\nkeep\n');

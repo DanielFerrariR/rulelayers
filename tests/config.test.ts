@@ -35,6 +35,103 @@ describe("loadConfig", () => {
     expect(cfg.rulesync.args).toEqual(["generate", "--targets", "cursor"]);
   });
 
+  it("loads a per-layer standaloneSuffix", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [{ "name": "src", "sublayers": ["company", "project"], "standaloneSuffix": "keep" }]
+}
+`,
+    );
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers).toEqual([
+      { name: "src", sublayers: ["company", "project"], standaloneSuffix: "keep" },
+    ]);
+    expect(formatConfig(cfg)).toContain('"standaloneSuffix": "keep"');
+  });
+
+  it("rejects standaloneSuffix that collides with a sublayer", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [{ "name": "src", "sublayers": ["company", "keep"], "standaloneSuffix": "keep" }]
+}
+`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/collides with standaloneSuffix/);
+  });
+
+  it("allows a physical layer named standalone with default standaloneSuffix", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [
+    { "name": "standalone", "sublayers": ["company", "team"] },
+    "repo"
+  ]
+}
+`,
+    );
+    const cfg = loadConfig(cwd);
+    expect(cfg.layers[0]).toEqual({
+      name: "standalone",
+      sublayers: ["company", "team"],
+    });
+  });
+
+  it("rejects a sublayer named standalone when using the default marker", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [{ "name": "src", "sublayers": ["company", "standalone"] }]
+}
+`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/collides with standaloneSuffix/);
+  });
+
+  it("rejects standaloneSuffix without sublayers", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{ "layers": [{ "name": "project", "standaloneSuffix": "keep" }] }\n`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/requires "sublayers"/);
+  });
+
+  it("rejects top-level standaloneSuffix", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{
+  "layers": [{ "name": "src", "sublayers": ["company"] }],
+  "standaloneSuffix": "keep"
+}
+`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/belongs on a layer object/);
+  });
+
+  it("rejects invalid standaloneSuffix values", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
+    dirs.push(cwd);
+    writeFileSync(
+      join(cwd, "rulelayers.jsonc"),
+      `{ "layers": [{ "name": "src", "sublayers": ["company"], "standaloneSuffix": "foo.bar" }] }\n`,
+    );
+    expect(() => loadConfig(cwd)).toThrow(/single path segment/);
+  });
+
   it("loads package layers", () => {
     const cwd = mkdtempSync(join(tmpdir(), "rulelayers-cfg-"));
     dirs.push(cwd);

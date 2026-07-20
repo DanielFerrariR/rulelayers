@@ -130,9 +130,7 @@ export function normalizeLayer(raw: unknown): LayerSource {
   const standaloneSuffix = normalizeStandaloneSuffix(o.standaloneSuffix, name);
 
   if (standaloneSuffix !== undefined && !sublayers) {
-    throw new Error(
-      `${CONFIG_FILENAME}: layer "${name}" "standaloneSuffix" requires "sublayers"`,
-    );
+    throw new Error(`${CONFIG_FILENAME}: layer "${name}" "standaloneSuffix" requires "sublayers"`);
   }
 
   const layer: LayerSource = { name };

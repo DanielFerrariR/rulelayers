@@ -2,12 +2,12 @@
 
 ## Mental model
 
-| Path                 | Role                                                | Commit?                                            |
-| -------------------- | --------------------------------------------------- | -------------------------------------------------- |
-| `.rulesync.{layer}/` | Editable source for that layer                      | Yes for shared layers; usually **no** for `user`   |
-| `.rulesync/`         | **Generated** merge output (rulesync input)         | **No** — includes user overrides; always gitignore |
-| `rulelayers.jsonc`   | Project-level settings: layers + how to invoke rulesync | Yes                                                |
-| `rulesync.jsonc`     | rulesync targets/features (project root only; not layered) | Yes                                             |
+| Path                 | Role                                                       | Commit?                                            |
+| -------------------- | ---------------------------------------------------------- | -------------------------------------------------- |
+| `.rulesync.{layer}/` | Editable source for that layer                             | Yes for shared layers; usually **no** for `user`   |
+| `.rulesync/`         | **Generated** merge output (rulesync input)                | **No** — includes user overrides; always gitignore |
+| `rulelayers.jsonc`   | Project-level settings: layers + how to invoke rulesync    | Yes                                                |
+| `rulesync.jsonc`     | rulesync targets/features (project root only; not layered) | Yes                                                |
 
 Default layers (low → high precedence): **`company` → `project` → `user`**.
 

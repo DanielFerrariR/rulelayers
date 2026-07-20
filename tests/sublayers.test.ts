@@ -97,7 +97,9 @@ describe("resolvePathSublayer", () => {
     expect(() => resolvePathSublayer("unit-testing.standalone.md", SUBS)).toThrow(
       /standalone requires/,
     );
-    expect(() => resolvePathSublayer("unit-testing.keep.md", SUBS, "keep")).toThrow(/keep requires/);
+    expect(() => resolvePathSublayer("unit-testing.keep.md", SUBS, "keep")).toThrow(
+      /keep requires/,
+    );
   });
 });
 

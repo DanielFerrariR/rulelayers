@@ -130,9 +130,7 @@ export function matchSpecialFile(
 ): SpecialFileMatch | undefined {
   const hasSublayers = Boolean(sublayers && sublayers.length > 0);
   if (hasSublayers && looksLikeSpecialWithStandalone(filename, standaloneSuffix)) {
-    throw new Error(
-      `.${standaloneSuffix} is not supported for JSON/ignore files: ${filename}`,
-    );
+    throw new Error(`.${standaloneSuffix} is not supported for JSON/ignore files: ${filename}`);
   }
 
   const exact: Array<{ filename: string; canonical: string; accumKey: string }> = [
